@@ -39,6 +39,22 @@ func _run() -> void:
     _expect(player.weapon_left.z_index < player.body.z_index, "North-facing weapons render behind the body")
     player._play_directional_animation("idle", "south")
     _expect(player.weapon_left.z_index > player.body.z_index, "South-facing weapons render in front of the body")
+    _expect(
+        is_equal_approx(player.weapon_left.rotation_degrees, -45.0)
+        and is_equal_approx(player.weapon_right.rotation_degrees, 45.0),
+        "South idle holds both sword tips upward in a normal forward grip"
+    )
+    for frame in range(6):
+        var walk_left := Vector2.UP.rotated(
+            deg_to_rad(player._weapon_pose_degrees("left", "walk", frame))
+        )
+        var walk_right := Vector2.UP.rotated(
+            deg_to_rad(player._weapon_pose_degrees("right", "walk", frame))
+        )
+        _expect(
+            walk_left.y < -0.5 and walk_right.y < -0.5,
+            "Walk frame %d keeps both sword tips above their grips" % frame
+        )
     _expect_all_impact_poses_face_their_direction(player)
 
     player._play_directional_animation("idle", "southwest")
@@ -217,6 +233,15 @@ func _test_animation_metadata() -> void:
     _expect(weapon_parsed is Dictionary, "Independent weapon metadata parses")
     if weapon_parsed is Dictionary:
         _expect(FileAccess.file_exists(weapon_parsed.get("texture", "")), "Independent weapon texture exists")
+    var equipment_profiles: Dictionary = parsed.get("equipment_profiles", {})
+    var dual_swords: Dictionary = equipment_profiles.get("dual_short_swords", {})
+    var instances: Array = dual_swords.get("instances", [])
+    _expect(
+        instances.size() == 2
+        and instances[0].get("default_rotation_degrees", 0) == -45
+        and instances[1].get("default_rotation_degrees", 0) == 45,
+        "Equipment metadata defaults to forward-grip sword angles"
+    )
 
 
 func _test_attack_frame_regions() -> void:

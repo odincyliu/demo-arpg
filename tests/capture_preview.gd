@@ -52,4 +52,22 @@ func _capture() -> void:
         quit(1)
         return
     print("CAPTURED: %s" % north_path)
+
+    arena.player.facing_direction = "south"
+    arena.player._play_directional_animation("idle", "south")
+    await process_frame
+    await process_frame
+    viewport_texture = root.get_texture()
+    if viewport_texture == null:
+        push_error("Viewport capture requires a rendering display driver")
+        quit(1)
+        return
+    var south_image := viewport_texture.get_image()
+    var south_path := ProjectSettings.globalize_path("res://artifacts/south-forward-grip-preview.png")
+    result = south_image.save_png(south_path)
+    if result != OK:
+        push_error("Could not save south capture: %s" % error_string(result))
+        quit(1)
+        return
+    print("CAPTURED: %s" % south_path)
     quit(0)

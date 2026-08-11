@@ -138,8 +138,8 @@
       "weapon": "res://assets/weapons/short_sword/weapon.json",
       "body_animation_profile": "dual_wield_light",
       "instances": [
-        {"socket": "hand_screen_left", "default_rotation_degrees": 135},
-        {"socket": "hand_screen_right", "default_rotation_degrees": -135}
+        {"socket": "hand_screen_left", "default_rotation_degrees": -45},
+        {"socket": "hand_screen_right", "default_rotation_degrees": 45}
       ]
     }
   },

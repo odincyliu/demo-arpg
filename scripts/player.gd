@@ -252,8 +252,8 @@ func _update_visual_pose() -> void:
         )
         weapon_left.position = body.position + attack_left - BODY_CELL_CENTER
         weapon_right.position = body.position + attack_right - BODY_CELL_CENTER
-        weapon_left.rotation_degrees = float(attack_pose.get("weapon_left_degrees", 135.0))
-        weapon_right.rotation_degrees = float(attack_pose.get("weapon_right_degrees", -135.0))
+        weapon_left.rotation_degrees = float(attack_pose.get("weapon_left_degrees", -45.0))
+        weapon_right.rotation_degrees = float(attack_pose.get("weapon_right_degrees", 45.0))
         weapon_left.z_index = int(attack_pose.get("weapon_left_z", 1))
         weapon_right.z_index = int(attack_pose.get("weapon_right_z", 1))
         return
@@ -316,8 +316,8 @@ static func mirror_attack_pose(source_pose: Dictionary) -> Dictionary:
     return {
         "hand_screen_left": Vector2(BODY_CELL_SIZE - source_right.x, source_right.y),
         "hand_screen_right": Vector2(BODY_CELL_SIZE - source_left.x, source_left.y),
-        "weapon_left_degrees": -float(source_pose.get("weapon_right_degrees", -135.0)),
-        "weapon_right_degrees": -float(source_pose.get("weapon_left_degrees", 135.0)),
+        "weapon_left_degrees": -float(source_pose.get("weapon_right_degrees", 45.0)),
+        "weapon_right_degrees": -float(source_pose.get("weapon_left_degrees", -45.0)),
         "weapon_left_z": int(source_pose.get("weapon_right_z", 1)),
         "weapon_right_z": int(source_pose.get("weapon_left_z", 1)),
     }
@@ -335,15 +335,15 @@ func _body_frame_offset(action: String, frame: int) -> Vector2:
 
 
 func _weapon_pose_degrees(side: String, action: String, frame: int) -> float:
-    var sign := 1.0 if side == "left" else -1.0
+    var sign := -1.0 if side == "left" else 1.0
     match action:
         "idle":
             var idle_delta := [0.0, 2.0, 0.0, -2.0]
-            return sign * (135.0 + idle_delta[frame % idle_delta.size()])
+            return sign * (45.0 + idle_delta[frame % idle_delta.size()])
         "walk":
             var walk_delta := [0.0, -8.0, 0.0, 8.0, 0.0, -4.0]
-            return sign * (135.0 + walk_delta[frame % walk_delta.size()])
-    return sign * 135.0
+            return sign * (45.0 + walk_delta[frame % walk_delta.size()])
+    return sign * 45.0
 
 
 func _update_weapon_layers(direction: String) -> void:
