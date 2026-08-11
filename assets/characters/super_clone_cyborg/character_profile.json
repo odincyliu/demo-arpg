@@ -18,14 +18,14 @@
     "southwest"
   ],
   "direction_rows": {
-    "east": 0,
-    "northeast": 1,
+    "east": 4,
+    "northeast": 3,
     "north": 2,
-    "northwest": 3,
-    "west": 4,
-    "southwest": 5,
+    "northwest": 1,
+    "west": 0,
+    "southwest": 7,
     "south": 6,
-    "southeast": 7
+    "southeast": 5
   },
   "animations": {
     "idle": {

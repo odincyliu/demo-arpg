@@ -142,8 +142,8 @@ func _run() -> void:
     ) as AtlasTexture
     _expect(
         impact_texture != null
-        and impact_texture.region == Rect2(14 * 128, 0, 128, 128),
-        "East impact uses atlas column 14 and east row 0"
+        and impact_texture.region == Rect2(14 * 128, 4 * 128, 128, 128),
+        "East impact uses atlas column 14 and the right-facing source row"
     )
 
     await create_timer(1.0, true, false, true).timeout
@@ -212,9 +212,23 @@ func _test_character_profile() -> void:
     )
 
     var direction_rows: Dictionary = profile.get("direction_rows", {})
+    var expected_rows := {
+        "east": 4,
+        "northeast": 3,
+        "north": 2,
+        "northwest": 1,
+        "west": 0,
+        "southwest": 7,
+        "south": 6,
+        "southeast": 5,
+    }
     var unique_rows: Dictionary = {}
     for direction: String in DIRECTIONS:
         _expect(direction_rows.has(direction), "%s has an explicit atlas row" % direction)
+        _expect(
+            int(direction_rows.get(direction, -1)) == int(expected_rows[direction]),
+            "%s uses the visually matching source row" % direction
+        )
         unique_rows[int(direction_rows.get(direction, -1))] = true
     _expect(unique_rows.size() == 8, "All eight directions use distinct source rows")
 
