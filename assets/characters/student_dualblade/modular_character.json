@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "character": "student_dualblade",
   "body_cell_size": 64,
   "logical_directions": [
@@ -23,6 +23,15 @@
     "east": "res://assets/characters/student_dualblade/body/idle_east.png",
     "northeast": "res://assets/characters/student_dualblade/body/idle_northeast.png",
     "north": "res://assets/characters/student_dualblade/body/idle_north.png"
+  },
+  "action_assets": {
+    "attack_01": {
+      "south": "res://assets/characters/student_dualblade/body/attack_01_south.png",
+      "southeast": "res://assets/characters/student_dualblade/body/attack_01_southeast.png",
+      "east": "res://assets/characters/student_dualblade/body/attack_01_east.png",
+      "northeast": "res://assets/characters/student_dualblade/body/attack_01_northeast.png",
+      "north": "res://assets/characters/student_dualblade/body/attack_01_north.png"
+    }
   },
   "animations": {
     "idle": {"frames": 4, "fps": 5.0, "loop": true},
@@ -62,6 +71,58 @@
         "hand_screen_left": [20, 41],
         "hand_screen_right": [43, 41]
       }
+    },
+    "attack_poses": {
+      "south": [
+        {"hand_screen_left": [20, 40], "hand_screen_right": [44, 40], "weapon_left_degrees": 135, "weapon_right_degrees": -135, "weapon_left_z": 1, "weapon_right_z": 2},
+        {"hand_screen_left": [22, 37], "hand_screen_right": [43, 37], "weapon_left_degrees": -55, "weapon_right_degrees": 55, "weapon_left_z": 1, "weapon_right_z": 2},
+        {"hand_screen_left": [27, 33], "hand_screen_right": [38, 33], "weapon_left_degrees": 10, "weapon_right_degrees": -10, "weapon_left_z": 1, "weapon_right_z": 2},
+        {"hand_screen_left": [27, 29], "hand_screen_right": [37, 29], "weapon_left_degrees": 45, "weapon_right_degrees": -45, "weapon_left_z": 2, "weapon_right_z": 1},
+        {"hand_screen_left": [14, 31], "hand_screen_right": [50, 31], "weapon_left_degrees": -85, "weapon_right_degrees": 85, "weapon_left_z": 2, "weapon_right_z": 1},
+        {"hand_screen_left": [14, 34], "hand_screen_right": [50, 34], "weapon_left_degrees": -125, "weapon_right_degrees": 125, "weapon_left_z": 2, "weapon_right_z": 1},
+        {"hand_screen_left": [22, 35], "hand_screen_right": [42, 35], "weapon_left_degrees": 165, "weapon_right_degrees": -165, "weapon_left_z": 1, "weapon_right_z": 2},
+        {"hand_screen_left": [20, 40], "hand_screen_right": [44, 40], "weapon_left_degrees": 135, "weapon_right_degrees": -135, "weapon_left_z": 1, "weapon_right_z": 2}
+      ],
+      "southeast": [
+        {"hand_screen_left": [22, 41], "hand_screen_right": [43, 40], "weapon_left_degrees": 135, "weapon_right_degrees": -135, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [21, 37], "hand_screen_right": [44, 37], "weapon_left_degrees": -55, "weapon_right_degrees": 55, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [27, 33], "hand_screen_right": [41, 33], "weapon_left_degrees": 10, "weapon_right_degrees": -10, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [27, 29], "hand_screen_right": [40, 29], "weapon_left_degrees": 45, "weapon_right_degrees": -45, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [15, 31], "hand_screen_right": [49, 31], "weapon_left_degrees": -85, "weapon_right_degrees": 85, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [15, 36], "hand_screen_right": [44, 34], "weapon_left_degrees": -125, "weapon_right_degrees": 125, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [23, 37], "hand_screen_right": [42, 37], "weapon_left_degrees": 165, "weapon_right_degrees": -165, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [22, 41], "hand_screen_right": [43, 40], "weapon_left_degrees": 135, "weapon_right_degrees": -135, "weapon_left_z": -1, "weapon_right_z": 1}
+      ],
+      "east": [
+        {"hand_screen_left": [26, 40], "hand_screen_right": [39, 40], "weapon_left_degrees": 135, "weapon_right_degrees": -135, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [19, 38], "hand_screen_right": [45, 37], "weapon_left_degrees": -55, "weapon_right_degrees": 55, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [28, 33], "hand_screen_right": [42, 33], "weapon_left_degrees": 10, "weapon_right_degrees": -10, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [28, 29], "hand_screen_right": [41, 29], "weapon_left_degrees": 45, "weapon_right_degrees": -45, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [16, 31], "hand_screen_right": [50, 31], "weapon_left_degrees": -85, "weapon_right_degrees": 85, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [15, 36], "hand_screen_right": [45, 34], "weapon_left_degrees": -125, "weapon_right_degrees": 125, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [26, 37], "hand_screen_right": [42, 37], "weapon_left_degrees": 165, "weapon_right_degrees": -165, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [26, 40], "hand_screen_right": [39, 40], "weapon_left_degrees": 135, "weapon_right_degrees": -135, "weapon_left_z": -1, "weapon_right_z": 1}
+      ],
+      "northeast": [
+        {"hand_screen_left": [23, 41], "hand_screen_right": [42, 41], "weapon_left_degrees": 135, "weapon_right_degrees": -135, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [20, 38], "hand_screen_right": [44, 38], "weapon_left_degrees": -55, "weapon_right_degrees": 55, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [27, 34], "hand_screen_right": [43, 34], "weapon_left_degrees": 10, "weapon_right_degrees": -10, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [28, 30], "hand_screen_right": [41, 30], "weapon_left_degrees": 45, "weapon_right_degrees": -45, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [15, 31], "hand_screen_right": [50, 31], "weapon_left_degrees": -85, "weapon_right_degrees": 85, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [15, 36], "hand_screen_right": [46, 34], "weapon_left_degrees": -125, "weapon_right_degrees": 125, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [24, 38], "hand_screen_right": [43, 38], "weapon_left_degrees": 165, "weapon_right_degrees": -165, "weapon_left_z": -1, "weapon_right_z": 1},
+        {"hand_screen_left": [23, 41], "hand_screen_right": [42, 41], "weapon_left_degrees": 135, "weapon_right_degrees": -135, "weapon_left_z": -1, "weapon_right_z": 1}
+      ],
+      "north": [
+        {"hand_screen_left": [20, 41], "hand_screen_right": [44, 41], "weapon_left_degrees": 135, "weapon_right_degrees": -135, "weapon_left_z": -2, "weapon_right_z": -1},
+        {"hand_screen_left": [20, 39], "hand_screen_right": [44, 39], "weapon_left_degrees": -55, "weapon_right_degrees": 55, "weapon_left_z": -2, "weapon_right_z": -1},
+        {"hand_screen_left": [26, 34], "hand_screen_right": [40, 34], "weapon_left_degrees": 10, "weapon_right_degrees": -10, "weapon_left_z": -2, "weapon_right_z": -1},
+        {"hand_screen_left": [28, 29], "hand_screen_right": [37, 29], "weapon_left_degrees": 45, "weapon_right_degrees": -45, "weapon_left_z": -1, "weapon_right_z": -2},
+        {"hand_screen_left": [14, 31], "hand_screen_right": [50, 31], "weapon_left_degrees": -85, "weapon_right_degrees": 85, "weapon_left_z": -1, "weapon_right_z": -2},
+        {"hand_screen_left": [15, 36], "hand_screen_right": [49, 36], "weapon_left_degrees": -125, "weapon_right_degrees": 125, "weapon_left_z": -1, "weapon_right_z": -2},
+        {"hand_screen_left": [21, 38], "hand_screen_right": [43, 38], "weapon_left_degrees": 165, "weapon_right_degrees": -165, "weapon_left_z": -2, "weapon_right_z": -1},
+        {"hand_screen_left": [20, 41], "hand_screen_right": [44, 41], "weapon_left_degrees": 135, "weapon_right_degrees": -135, "weapon_left_z": -2, "weapon_right_z": -1}
+      ]
     }
   },
   "render_contract": {
@@ -84,13 +145,13 @@
   },
   "animation_policy": {
     "idle_and_walk": "weapon-neutral body anchors are reused with procedural bobbing",
-    "attacks": "the body anchor leans while independent weapon nodes perform the swing",
+    "attacks": "each authored direction uses eight weapon-neutral body frames and per-frame sockets, angles, and layers",
     "weapon_swaps": "replace weapon.json and texture when the body profile is compatible",
     "large_weapons": "spears, bows, or heavy weapons require their own body animation profile"
   },
   "provenance": {
     "method": "OpenAI built-in image generation plus deterministic chroma-key and fixed-cell processing",
-    "reference": "user-supplied child photo used for general appearance only and not stored in the project",
+    "attack_reference": "existing original character artwork only; no user photograph was reused or stored for attack generation",
     "excluded_sources": [
       "previous bird-headed internet image",
       "photographed shirt character artwork",

@@ -1,25 +1,25 @@
 {
-  "input": "D:\\funny\\side-scroller\\assets\\characters\\student_dualblade\\run\\source\\body-idle-northeast-imagegen.png",
+  "input": "D:\\funny\\side-scroller\\assets\\characters\\student_dualblade\\run\\source\\body-attack_01-north-imagegen.png",
   "source_copy": null,
-  "action": "body_idle",
-  "direction": "northeast",
+  "action": "body_attack_01",
+  "direction": "north",
   "sizes": [
     64
   ],
-  "columns": 1,
+  "columns": 8,
   "row_bounds": [
     [
       0,
-      1254
+      887
     ]
   ],
   "outputs": [
     {
       "cell": 64,
-      "path": "D:\\funny\\side-scroller\\assets\\characters\\student_dualblade\\run\\64\\generated\\body_idle-northeast.png",
+      "path": "D:\\funny\\side-scroller\\assets\\characters\\student_dualblade\\run\\64\\generated\\body_attack_01-north.png",
       "row_bounds": [
         0,
-        1254
+        887
       ]
     }
   ]

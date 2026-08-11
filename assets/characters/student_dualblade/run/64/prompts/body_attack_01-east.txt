@@ -1,0 +1,15 @@
+Use case: stylized-concept.
+Asset type: native 64x64 Godot pixel-art unarmed body animation strip.
+Input role: accepted original strict east-facing character identity and style reference.
+
+Create exactly eight full-body frames in one horizontal row. The character remains strict EAST/screen-right in every frame and performs an empty-hand mime for a modular dual-short-sword cross slash:
+1. defensive guard;
+2. lowered wind-up with shoulder and hip twist;
+3. both hands sweep inward;
+4. hands cross at the chest for the impact pose;
+5. arms burst outward;
+6. forward-leaning follow-through;
+7. hands retract and torso recenters;
+8. defensive recovery.
+
+Body only: no swords, weapons, scabbards, trails, props, text, logos, borders, floor, or shadows. Each pose must be materially distinct, anatomically continuous, fully contained in its frame, and rooted to one stable baseline. Crisp limited-palette pixel art on uniform solid #FF00FF.

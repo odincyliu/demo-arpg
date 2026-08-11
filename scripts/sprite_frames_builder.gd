@@ -5,9 +5,11 @@ extends RefCounted
 static func build(metadata_path: String) -> SpriteFrames:
     var metadata := load_json(metadata_path)
     var body_assets: Dictionary = metadata.get("body_assets", {})
+    var action_assets: Dictionary = metadata.get("action_assets", {})
     var animations: Dictionary = metadata.get("animations", {})
     var logical_directions: Array = metadata.get("logical_directions", [])
     var mirror_sources: Dictionary = metadata.get("mirror_sources", {})
+    var body_cell_size := float(metadata.get("body_cell_size", 64))
     var texture_cache: Dictionary = {}
 
     var sprite_frames := SpriteFrames.new()
@@ -17,10 +19,17 @@ static func build(metadata_path: String) -> SpriteFrames:
     for action_value: Variant in animations:
         var action := str(action_value)
         var animation_data: Dictionary = animations[action]
+        var action_body_assets: Dictionary = action_assets.get(action, {})
+        var uses_strip := not action_body_assets.is_empty()
         for direction_value: Variant in logical_directions:
             var direction := str(direction_value)
             var source_direction := str(mirror_sources.get(direction, direction))
-            var texture_path := str(body_assets.get(source_direction, ""))
+            var texture_path := str(
+                action_body_assets.get(
+                    source_direction,
+                    body_assets.get(source_direction, "")
+                )
+            )
             var body_texture := texture_cache.get(texture_path) as Texture2D
             if body_texture == null:
                 body_texture = load(texture_path) as Texture2D
@@ -33,8 +42,20 @@ static func build(metadata_path: String) -> SpriteFrames:
             sprite_frames.add_animation(animation_name)
             sprite_frames.set_animation_speed(animation_name, float(animation_data.get("fps", 8.0)))
             sprite_frames.set_animation_loop(animation_name, bool(animation_data.get("loop", true)))
-            for _frame_index in range(int(animation_data.get("frames", 1))):
-                sprite_frames.add_frame(animation_name, body_texture)
+            for frame_index in range(int(animation_data.get("frames", 1))):
+                if uses_strip:
+                    var frame_texture := AtlasTexture.new()
+                    frame_texture.atlas = body_texture
+                    frame_texture.region = Rect2(
+                        frame_index * body_cell_size,
+                        0.0,
+                        body_cell_size,
+                        body_cell_size
+                    )
+                    frame_texture.filter_clip = true
+                    sprite_frames.add_frame(animation_name, frame_texture)
+                else:
+                    sprite_frames.add_frame(animation_name, body_texture)
 
     return sprite_frames
 

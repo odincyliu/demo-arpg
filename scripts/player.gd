@@ -241,6 +241,24 @@ func _update_visual_pose() -> void:
     if body == null or weapon_left == null or weapon_right == null:
         return
     body.position = _body_frame_offset(current_action, body.frame)
+    if current_action == "attack_01":
+        var attack_pose := _get_attack_pose(facing_direction, body.frame)
+        var attack_left := _as_vector2(
+            attack_pose.get("hand_screen_left", []),
+            Vector2(19.0, 41.0)
+        )
+        var attack_right := _as_vector2(
+            attack_pose.get("hand_screen_right", []),
+            Vector2(44.0, 41.0)
+        )
+        weapon_left.position = body.position + attack_left - BODY_CELL_CENTER
+        weapon_right.position = body.position + attack_right - BODY_CELL_CENTER
+        weapon_left.rotation_degrees = float(attack_pose.get("weapon_left_degrees", 135.0))
+        weapon_right.rotation_degrees = float(attack_pose.get("weapon_right_degrees", -135.0))
+        weapon_left.z_index = int(attack_pose.get("weapon_left_z", 1))
+        weapon_right.z_index = int(attack_pose.get("weapon_right_z", 1))
+        return
+
     var sockets := _get_direction_sockets(facing_direction)
     weapon_left.position = body.position + sockets.get("left", Vector2(19.0, 41.0)) - BODY_CELL_CENTER
     weapon_right.position = body.position + sockets.get("right", Vector2(44.0, 41.0)) - BODY_CELL_CENTER
@@ -270,6 +288,42 @@ func _get_direction_sockets(direction: String) -> Dictionary:
     return {"left": left, "right": right}
 
 
+func _get_attack_pose(direction: String, frame: int) -> Dictionary:
+    var source_direction: String = MIRROR_SOURCES.get(direction, direction)
+    var rig: Dictionary = _character_metadata.get("rig", {})
+    var attack_poses: Dictionary = rig.get("attack_poses", {})
+    var direction_poses: Array = attack_poses.get(source_direction, [])
+    if direction_poses.is_empty():
+        push_error("Missing attack poses for direction: %s" % source_direction)
+        return {}
+    var source_pose: Variant = direction_poses[posmod(frame, direction_poses.size())]
+    if not source_pose is Dictionary:
+        push_error("Invalid attack pose for %s frame %d" % [source_direction, frame])
+        return {}
+    if MIRROR_SOURCES.has(direction):
+        return mirror_attack_pose(source_pose)
+    return source_pose
+
+
+static func mirror_attack_pose(source_pose: Dictionary) -> Dictionary:
+    var source_left := _as_vector2(
+        source_pose.get("hand_screen_left", []),
+        Vector2(19.0, 41.0)
+    )
+    var source_right := _as_vector2(
+        source_pose.get("hand_screen_right", []),
+        Vector2(44.0, 41.0)
+    )
+    return {
+        "hand_screen_left": Vector2(BODY_CELL_SIZE - source_right.x, source_right.y),
+        "hand_screen_right": Vector2(BODY_CELL_SIZE - source_left.x, source_left.y),
+        "weapon_left_degrees": -float(source_pose.get("weapon_right_degrees", -135.0)),
+        "weapon_right_degrees": -float(source_pose.get("weapon_left_degrees", 135.0)),
+        "weapon_left_z": int(source_pose.get("weapon_right_z", 1)),
+        "weapon_right_z": int(source_pose.get("weapon_left_z", 1)),
+    }
+
+
 func _body_frame_offset(action: String, frame: int) -> Vector2:
     match action:
         "idle":
@@ -278,9 +332,6 @@ func _body_frame_offset(action: String, frame: int) -> Vector2:
         "walk":
             var walk_y := [0.0, 1.0, 0.0, -1.0, 0.0, 1.0]
             return Vector2(0.0, walk_y[frame % walk_y.size()])
-        "attack_01":
-            var attack_y := [0.0, -1.0, -2.0, -2.0, -1.0, 0.0, 0.0, 0.0]
-            return Vector2(0.0, attack_y[frame % attack_y.size()])
     return Vector2.ZERO
 
 
@@ -293,9 +344,6 @@ func _weapon_pose_degrees(side: String, action: String, frame: int) -> float:
         "walk":
             var walk_delta := [0.0, -8.0, 0.0, 8.0, 0.0, -4.0]
             return sign * (135.0 + walk_delta[frame % walk_delta.size()])
-        "attack_01":
-            var attack_swing := [65.0, 95.0, 140.0, 205.0, 240.0, 205.0, 165.0, 145.0]
-            return sign * attack_swing[frame % attack_swing.size()]
     return sign * 135.0
 
 

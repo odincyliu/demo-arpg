@@ -10,11 +10,19 @@
       "navy shorts and dark sneakers"
     ]
   },
+  "attack_reference": {
+    "source_type": "existing_original_character_art",
+    "source": "the accepted weapon-neutral body direction anchors in this run",
+    "used_for_generation": true,
+    "user_photo_reused": false,
+    "user_photo_stored": false
+  },
   "scope": {
     "sizes": [64],
-    "actions": ["body_idle"],
+    "actions": ["body_idle", "body_attack_01"],
     "directions": ["south", "southeast", "east", "northeast", "north"],
-    "frames": 1
+    "frames": 1,
+    "attack_frames": 8
   },
   "generation": {
     "method": "imagegen",
@@ -28,7 +36,12 @@
     {"cell": 64, "action": "body_idle", "direction": "southeast", "method": "imagegen", "imagegen_output_path": "source/body-idle-southeast-imagegen.png", "source_path": "64/generated/body_idle-southeast.png", "prompt_path": "64/prompts/body_idle-southeast.txt"},
     {"cell": 64, "action": "body_idle", "direction": "east", "method": "imagegen", "imagegen_output_path": "source/body-idle-east-imagegen.png", "source_path": "64/generated/body_idle-east.png", "prompt_path": "64/prompts/body_idle-east.txt"},
     {"cell": 64, "action": "body_idle", "direction": "northeast", "method": "imagegen", "imagegen_output_path": "source/body-idle-northeast-imagegen.png", "source_path": "64/generated/body_idle-northeast.png", "prompt_path": "64/prompts/body_idle-northeast.txt"},
-    {"cell": 64, "action": "body_idle", "direction": "north", "method": "imagegen", "imagegen_output_path": "source/body-idle-north-imagegen.png", "source_path": "64/generated/body_idle-north.png", "prompt_path": "64/prompts/body_idle-north.txt"}
+    {"cell": 64, "action": "body_idle", "direction": "north", "method": "imagegen", "imagegen_output_path": "source/body-idle-north-imagegen.png", "source_path": "64/generated/body_idle-north.png", "prompt_path": "64/prompts/body_idle-north.txt"},
+    {"cell": 64, "action": "body_attack_01", "direction": "south", "method": "imagegen", "imagegen_output_path": "source/body-attack_01-south-imagegen.png", "source_path": "64/generated/body_attack_01-south.png", "prompt_path": "64/prompts/body_attack_01-south.txt"},
+    {"cell": 64, "action": "body_attack_01", "direction": "southeast", "method": "imagegen", "imagegen_output_path": "source/body-attack_01-southeast-imagegen.png", "source_path": "64/generated/body_attack_01-southeast.png", "prompt_path": "64/prompts/body_attack_01-southeast.txt"},
+    {"cell": 64, "action": "body_attack_01", "direction": "east", "method": "imagegen", "imagegen_output_path": "source/body-attack_01-east-imagegen.png", "source_path": "64/generated/body_attack_01-east.png", "prompt_path": "64/prompts/body_attack_01-east.txt"},
+    {"cell": 64, "action": "body_attack_01", "direction": "northeast", "method": "imagegen", "imagegen_output_path": "source/body-attack_01-northeast-imagegen.png", "source_path": "64/generated/body_attack_01-northeast.png", "prompt_path": "64/prompts/body_attack_01-northeast.txt"},
+    {"cell": 64, "action": "body_attack_01", "direction": "north", "method": "imagegen", "imagegen_output_path": "source/body-attack_01-north-imagegen.png", "source_path": "64/generated/body_attack_01-north.png", "prompt_path": "64/prompts/body_attack_01-north.txt"}
   ],
-  "visual_review": {"path": "64/qa/visual-review.json"}
+  "visual_review": {"path": "64/qa/attack-visual-review.json"}
 }

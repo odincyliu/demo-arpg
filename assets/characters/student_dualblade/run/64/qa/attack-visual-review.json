@@ -1,0 +1,35 @@
+{
+  "accepted": true,
+  "reviewer_notes": "Accepted after rejecting and regenerating one south strip that drifted to a side view. The final five authored strips and three deterministic mirrors preserve front, side, diagonal, and back orientation. All 40 authored body frames are weapon-neutral and materially distinct. The Godot-rendered 8x8 composite confirms every sword grip is placed at the per-frame hand socket, impact frame 3 forms a readable X, and mirrored directions swap angles and layers without front/back inversion.",
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "frame_separation": "pass",
+    "five_authored_directions": "pass",
+    "three_runtime_mirrors": "pass",
+    "eight_distinct_body_regions": "pass",
+    "stable_foot_anchor": "pass",
+    "front_back_separation": "pass",
+    "no_direction_drift": "pass",
+    "body_has_no_weapon_pixels": "pass",
+    "hand_socket_complete": "pass",
+    "weapon_grip_alignment": "pass",
+    "weapon_angle_continuity": "pass",
+    "weapon_layering": "pass",
+    "transparent_background": "pass",
+    "chroma_residue": "pass",
+    "motion_audit": "pass",
+    "not_procedural": "pass"
+  },
+  "qa_artifacts": {
+    "authored_contact_sheet": "body_attack_01-contact-sheet.png",
+    "eight_direction_body_contact_sheet": "body_attack_01-eight-directions-contact-sheet.png",
+    "godot_composite_contact_sheet": "attack-composite-contact-sheet.png",
+    "authored_validation": "body_attack_01-validation.json",
+    "eight_direction_validation": "body_attack_01-eight-directions-validation.json",
+    "authored_motion_audit": "body_attack_01-motion.json",
+    "eight_direction_motion_audit": "body_attack_01-eight-directions-motion.json",
+    "body_gif_directory": "attack_previews-eight-directions"
+  }
+}

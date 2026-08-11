@@ -1,0 +1,137 @@
+{
+  "ok": true,
+  "file": "D:\\funny\\side-scroller\\assets\\characters\\student_dualblade\\run\\64\\final\\body_attack_01-southeast.png",
+  "width": 512,
+  "height": 64,
+  "errors": [],
+  "warnings": [],
+  "rows": [
+    {
+      "row": 0,
+      "row_name": "southeast",
+      "cells": [
+        {
+          "row": 0,
+          "row_name": "southeast",
+          "column": 0,
+          "nontransparent_pixels": 947,
+          "edge_pixels": 0,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            17,
+            4,
+            43,
+            60
+          ]
+        },
+        {
+          "row": 0,
+          "row_name": "southeast",
+          "column": 1,
+          "nontransparent_pixels": 1171,
+          "edge_pixels": 0,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            12,
+            4,
+            52,
+            60
+          ]
+        },
+        {
+          "row": 0,
+          "row_name": "southeast",
+          "column": 2,
+          "nontransparent_pixels": 870,
+          "edge_pixels": 0,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            17,
+            4,
+            46,
+            60
+          ]
+        },
+        {
+          "row": 0,
+          "row_name": "southeast",
+          "column": 3,
+          "nontransparent_pixels": 867,
+          "edge_pixels": 0,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            13,
+            4,
+            50,
+            60
+          ]
+        },
+        {
+          "row": 0,
+          "row_name": "southeast",
+          "column": 4,
+          "nontransparent_pixels": 946,
+          "edge_pixels": 0,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            13,
+            4,
+            50,
+            60
+          ]
+        },
+        {
+          "row": 0,
+          "row_name": "southeast",
+          "column": 5,
+          "nontransparent_pixels": 958,
+          "edge_pixels": 0,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            11,
+            4,
+            52,
+            60
+          ]
+        },
+        {
+          "row": 0,
+          "row_name": "southeast",
+          "column": 6,
+          "nontransparent_pixels": 947,
+          "edge_pixels": 0,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            14,
+            4,
+            50,
+            60
+          ]
+        },
+        {
+          "row": 0,
+          "row_name": "southeast",
+          "column": 7,
+          "nontransparent_pixels": 940,
+          "edge_pixels": 0,
+          "chroma_residue_pixels": 0,
+          "bbox": [
+            19,
+            4,
+            45,
+            60
+          ]
+        }
+      ],
+      "frame_diffs": [
+        0.10798,
+        0.09693,
+        0.08506,
+        0.10163,
+        0.11544,
+        0.11549,
+        0.12096
+      ]
+    }
+  ]
+}
