@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "id": "short_sword",
+  "display_name": "Short Sword",
+  "texture": "res://assets/weapons/short_sword/short_sword.png",
+  "cell_size": 32,
+  "landmarks": {
+    "root": [16, 26],
+    "grip": [16, 26],
+    "tip": [16, 2]
+  },
+  "visual": {
+    "default_scale": 1.0,
+    "pixel_filter": "nearest",
+    "can_mirror": true
+  },
+  "equipment": {
+    "slots": ["main_hand", "off_hand"],
+    "compatible_body_profiles": ["one_handed_light", "dual_wield_light"]
+  },
+  "provenance": {
+    "method": "original AI-generated pixel-art design",
+    "source_image": "not derived from the previous internet character"
+  }
+}

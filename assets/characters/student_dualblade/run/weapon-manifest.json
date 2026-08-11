@@ -1,0 +1,40 @@
+{
+  "reference": {
+    "source_type": "file",
+    "source": "source/weapon-short-sword-32-imagegen.png",
+    "used_for_generation": true,
+    "identity_notes": [
+      "single compact silver short sword",
+      "dark steel guard",
+      "teal-wrapped grip",
+      "small dark pommel"
+    ]
+  },
+  "scope": {
+    "sizes": [32],
+    "actions": ["weapon_short_sword"],
+    "directions": ["neutral"],
+    "frames": 1
+  },
+  "generation": {
+    "method": "imagegen",
+    "imagegen_output_path": "source/weapon-short-sword-32-imagegen.png",
+    "procedural": false,
+    "text_only": false,
+    "imported_contact_sheet": false
+  },
+  "strips": [
+    {
+      "cell": 32,
+      "action": "weapon_short_sword",
+      "direction": "neutral",
+      "method": "imagegen",
+      "imagegen_output_path": "source/weapon-short-sword-32-imagegen.png",
+      "source_path": "32/generated/weapon_short_sword-neutral.png",
+      "prompt_path": "32/prompts/weapon_short_sword.txt"
+    }
+  ],
+  "visual_review": {
+    "path": "32/qa/visual-review.json"
+  }
+}

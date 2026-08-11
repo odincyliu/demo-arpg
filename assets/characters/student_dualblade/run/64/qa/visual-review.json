@@ -1,0 +1,27 @@
+{
+  "accepted": true,
+  "reviewer_notes": "Accepted after inspecting the five-direction contact sheet and enlarged previews. South is clearly front-facing, east is strict screen-right profile, southeast is front-right, northeast is rear-right with no front torso or waistband details, and north is a true rear view. Every body image has empty hands and contains no weapon pixels.",
+  "checks": {
+    "reference_identity": "pass",
+    "direction": "pass",
+    "animation_readable": "pass",
+    "front_direction": "pass",
+    "side_direction": "pass",
+    "front_diagonal_direction": "pass",
+    "rear_diagonal_direction": "pass",
+    "back_direction": "pass",
+    "front_back_separation": "pass",
+    "body_has_no_weapon_pixels": "pass",
+    "weapon_is_independent": "pass",
+    "frame_separation": "pass",
+    "transparent_background": "pass",
+    "not_procedural": "pass"
+  },
+  "qa_artifacts": {
+    "body_contact_sheet": "body_idle-contact-sheet.png",
+    "body_validation": "body_idle-validation.json",
+    "preview_directory": "previews",
+    "weapon_contact_sheet": "../../32/qa/weapon_short_sword-contact-sheet.png",
+    "weapon_validation": "../../32/qa/weapon_short_sword-validation.json"
+  }
+}

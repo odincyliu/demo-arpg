@@ -1,0 +1,66 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="Resource" path="res://resources/player_attack_01.tres" id="2_attack"]
+
+[sub_resource type="CapsuleShape2D" id="CapsulePlayer"]
+radius = 13.0
+height = 28.0
+
+[sub_resource type="RectangleShape2D" id="RectangleAttack"]
+size = Vector2(60, 46)
+
+[sub_resource type="CapsuleShape2D" id="CapsuleHurtbox"]
+radius = 14.0
+height = 34.0
+
+[node name="Player" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_player")
+attack_data = ExtResource("2_attack")
+
+[node name="VisualRig" type="Node2D" parent="."]
+position = Vector2(0, -34)
+scale = Vector2(1.5, 1.5)
+
+[node name="WeaponLeft" type="Sprite2D" parent="VisualRig"]
+texture_filter = 1
+
+[node name="Body" type="AnimatedSprite2D" parent="VisualRig"]
+texture_filter = 1
+centered = true
+
+[node name="WeaponRight" type="Sprite2D" parent="VisualRig"]
+texture_filter = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -12)
+shape = SubResource("CapsulePlayer")
+
+[node name="AttackPivot" type="Node2D" parent="."]
+
+[node name="AttackHitbox" type="Area2D" parent="AttackPivot"]
+collision_layer = 8
+collision_mask = 16
+monitoring = false
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackPivot/AttackHitbox"]
+position = Vector2(44, -16)
+shape = SubResource("RectangleAttack")
+disabled = true
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 2
+collision_mask = 0
+monitoring = false
+monitorable = true
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(0, -16)
+shape = SubResource("CapsuleHurtbox")
+
+[node name="AttackAudio" type="AudioStreamPlayer2D" parent="."]
+
+[node name="HitConfirmAudio" type="AudioStreamPlayer2D" parent="."]

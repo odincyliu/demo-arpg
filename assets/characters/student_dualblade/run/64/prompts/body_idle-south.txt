@@ -1,0 +1,10 @@
+Use case: stylized-concept
+Asset type: original 64x64-budget pixel-art unarmed body anchor
+Input images: Image 1 is the child photo used only for age, short black hair, general face shape, black-and-teal palette, and navy shorts. Image 2 is the generated character draft used only for the accepted pixel-art proportions, face, hair, clothing design, and palette. Remove all weapons from Image 2.
+Primary request: Create the same original chibi elementary-school-age East Asian boy hero, true front-facing south toward the camera in a neutral unarmed ready stance.
+Style/medium: crisp hand-authored 2D pixel art, limited palette, hard square pixel edges, readable at 64x64, about 2.5 heads tall.
+Character design: short straight black hair, youthful round face, charcoal sports shirt with a wholly original emerald/teal lightning motif and small abstract wave emblem, navy shorts, dark practical sneakers, teal wrist wraps. Empty open hands held naturally beside the hips, with no object touching or overlapping either hand.
+Direction lock: true front view; both eyes and full face visible; front shirt motif and front waistband visible; symmetrical shoulders and feet.
+Rig readability: leave clean empty space around both hands for separate weapon sprites; clearly visible left and right hand centers.
+Scene/backdrop: perfectly flat solid #ff00ff chroma-key background, uniform edge to edge.
+Constraints: single full-body character centered with generous padding; entire hair, shoes, and hands inside the image; age-appropriate; non-graphic; original design only; no weapon, sheath, holster, text, frame, UI, shadow, floor, gradient, glow, watermark, logo, trademark, bird head, mask, franchise character, or extra object. Do not use #ff00ff in the subject.

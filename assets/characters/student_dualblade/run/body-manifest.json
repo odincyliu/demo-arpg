@@ -1,0 +1,34 @@
+{
+  "reference": {
+    "source_type": "chat_attachment",
+    "source": "attached child photo #1 (not stored in the project)",
+    "used_for_generation": true,
+    "identity_notes": [
+      "elementary-school-age East Asian boy",
+      "short straight black hair",
+      "charcoal shirt with an original teal lightning motif",
+      "navy shorts and dark sneakers"
+    ]
+  },
+  "scope": {
+    "sizes": [64],
+    "actions": ["body_idle"],
+    "directions": ["south", "southeast", "east", "northeast", "north"],
+    "frames": 1
+  },
+  "generation": {
+    "method": "imagegen",
+    "imagegen_output_path": "source/body-idle-south-imagegen.png",
+    "procedural": false,
+    "text_only": false,
+    "imported_contact_sheet": false
+  },
+  "strips": [
+    {"cell": 64, "action": "body_idle", "direction": "south", "method": "imagegen", "imagegen_output_path": "source/body-idle-south-imagegen.png", "source_path": "64/generated/body_idle-south.png", "prompt_path": "64/prompts/body_idle-south.txt"},
+    {"cell": 64, "action": "body_idle", "direction": "southeast", "method": "imagegen", "imagegen_output_path": "source/body-idle-southeast-imagegen.png", "source_path": "64/generated/body_idle-southeast.png", "prompt_path": "64/prompts/body_idle-southeast.txt"},
+    {"cell": 64, "action": "body_idle", "direction": "east", "method": "imagegen", "imagegen_output_path": "source/body-idle-east-imagegen.png", "source_path": "64/generated/body_idle-east.png", "prompt_path": "64/prompts/body_idle-east.txt"},
+    {"cell": 64, "action": "body_idle", "direction": "northeast", "method": "imagegen", "imagegen_output_path": "source/body-idle-northeast-imagegen.png", "source_path": "64/generated/body_idle-northeast.png", "prompt_path": "64/prompts/body_idle-northeast.txt"},
+    {"cell": 64, "action": "body_idle", "direction": "north", "method": "imagegen", "imagegen_output_path": "source/body-idle-north-imagegen.png", "source_path": "64/generated/body_idle-north.png", "prompt_path": "64/prompts/body_idle-north.txt"}
+  ],
+  "visual_review": {"path": "64/qa/visual-review.json"}
+}

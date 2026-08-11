@@ -1,0 +1,90 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat_test.gd" id="1_arena"]
+[ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/TrainingDummy.tscn" id="3_dummy"]
+[ext_resource type="Script" path="res://scripts/arena_visual.gd" id="4_visual"]
+[ext_resource type="Script" path="res://scripts/combat_camera.gd" id="5_camera"]
+[ext_resource type="Script" path="res://scripts/debug_hud.gd" id="6_hud"]
+
+[sub_resource type="StyleBoxFlat" id="StylePanel"]
+bg_color = Color(0.035, 0.055, 0.085, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.2, 0.78, 0.82, 0.75)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="CombatTest" type="Node2D"]
+script = ExtResource("1_arena")
+
+[node name="ArenaVisual" type="Node2D" parent="."]
+z_index = -10
+script = ExtResource("4_visual")
+
+[node name="Effects" type="Node2D" parent="."]
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+z_index = 10
+
+[node name="DummyEastA" parent="." instance=ExtResource("3_dummy")]
+position = Vector2(62, -32)
+
+[node name="DummyEastB" parent="." instance=ExtResource("3_dummy")]
+position = Vector2(72, -16)
+
+[node name="DummyEastC" parent="." instance=ExtResource("3_dummy")]
+position = Vector2(62, 0)
+
+[node name="DummyNorth" parent="." instance=ExtResource("3_dummy")]
+position = Vector2(0, -112)
+
+[node name="DummySouth" parent="." instance=ExtResource("3_dummy")]
+position = Vector2(0, 116)
+
+[node name="DummyWest" parent="." instance=ExtResource("3_dummy")]
+position = Vector2(-118, -10)
+
+[node name="DummySoutheast" parent="." instance=ExtResource("3_dummy")]
+position = Vector2(116, 104)
+
+[node name="CombatCamera" type="Camera2D" parent="."]
+target_path = NodePath("../Player")
+script = ExtResource("5_camera")
+
+[node name="DebugHUD" type="CanvasLayer" parent="."]
+script = ExtResource("6_hud")
+player_path = NodePath("../Player")
+
+[node name="Instructions" type="Label" parent="DebugHUD"]
+offset_left = 18.0
+offset_top = 16.0
+offset_right = 578.0
+offset_bottom = 48.0
+theme_override_colors/font_color = Color(0.88, 0.97, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 18
+text = "WASD Move   •   Mouse Aim   •   LMB / J / Space Attack   •   F3 Debug"
+
+[node name="Panel" type="ColorRect" parent="DebugHUD"]
+offset_left = 18.0
+offset_top = 58.0
+offset_right = 316.0
+offset_bottom = 204.0
+mouse_filter = 2
+color = Color(0.035, 0.055, 0.085, 0.9)
+
+[node name="DebugText" type="Label" parent="DebugHUD/Panel"]
+offset_left = 14.0
+offset_top = 10.0
+offset_right = 286.0
+offset_bottom = 136.0
+theme_override_colors/font_color = Color(0.72, 0.96, 0.98, 1)
+theme_override_font_sizes/font_size = 16
+text = "Debug"

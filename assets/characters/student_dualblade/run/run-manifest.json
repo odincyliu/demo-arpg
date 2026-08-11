@@ -1,0 +1,70 @@
+{
+  "schema_version": 2,
+  "character": "student_dualblade",
+  "reference": {
+    "source_type": "chat_attachment",
+    "source": "attached child photo #1 (not stored in the project)",
+    "used_for_generation": true,
+    "identity_notes": [
+      "elementary-school-age East Asian boy",
+      "short straight black hair",
+      "youthful round face",
+      "charcoal sports shirt with an original teal lightning pattern",
+      "navy shorts"
+    ]
+  },
+  "scope": {
+    "sizes": [32, 64],
+    "actions": ["body_idle", "weapon_short_sword"],
+    "directions": ["south", "southeast", "east", "northeast", "north", "neutral"],
+    "runtime_mirrors": ["southwest", "west", "northwest"],
+    "frames_per_authored_direction": 1,
+    "weapon": "one independent short-sword prop reused by two weapon sockets"
+  },
+  "output_contract": {
+    "body_cell": 64,
+    "weapon_cell": 32,
+    "weapon_scale_at_runtime": 1.0,
+    "reason": "The 32px weapon budget matches the body pixel density without fractional per-asset scaling."
+  },
+  "layer_contract": {
+    "rig_profile": "humanoid_biped",
+    "body_track": "base",
+    "weapon_track": "prop_effect",
+    "body_sockets": ["hand_screen_left", "hand_screen_right"],
+    "weapon_landmarks": ["root", "grip", "tip"],
+    "runtime_composition": true,
+    "notes": [
+      "Body frames contain no weapon pixels.",
+      "Weapon visuals are attached to screen-space hand sockets.",
+      "Idle, walk, and attack timing reuse the body anchors while the two weapon nodes animate independently.",
+      "Different weapon textures can reuse a compatible body animation profile."
+    ]
+  },
+  "generation": {
+    "method": "imagegen",
+    "imagegen_output_path": "source/body-idle-south-imagegen.png",
+    "procedural": false,
+    "text_only": false,
+    "imported_contact_sheet": false,
+    "status": "complete",
+    "processor": "game-character-sprites fixed-cell import plus pixel_snap"
+  },
+  "strips": [
+    {"cell": 64, "action": "body_idle", "direction": "south", "method": "imagegen", "imagegen_output_path": "source/body-idle-south-imagegen.png", "source_path": "64/generated/body_idle-south.png", "final_path": "64/final/body_idle-south.png", "prompt_path": "64/prompts/body_idle-south.txt"},
+    {"cell": 64, "action": "body_idle", "direction": "southeast", "method": "imagegen", "imagegen_output_path": "source/body-idle-southeast-imagegen.png", "source_path": "64/generated/body_idle-southeast.png", "final_path": "64/final/body_idle-southeast.png", "prompt_path": "64/prompts/body_idle-southeast.txt"},
+    {"cell": 64, "action": "body_idle", "direction": "east", "method": "imagegen", "imagegen_output_path": "source/body-idle-east-imagegen.png", "source_path": "64/generated/body_idle-east.png", "final_path": "64/final/body_idle-east.png", "prompt_path": "64/prompts/body_idle-east.txt"},
+    {"cell": 64, "action": "body_idle", "direction": "northeast", "method": "imagegen", "imagegen_output_path": "source/body-idle-northeast-imagegen.png", "source_path": "64/generated/body_idle-northeast.png", "final_path": "64/final/body_idle-northeast.png", "prompt_path": "64/prompts/body_idle-northeast.txt"},
+    {"cell": 64, "action": "body_idle", "direction": "north", "method": "imagegen", "imagegen_output_path": "source/body-idle-north-imagegen.png", "source_path": "64/generated/body_idle-north.png", "final_path": "64/final/body_idle-north.png", "prompt_path": "64/prompts/body_idle-north.txt"},
+    {"cell": 32, "action": "weapon_short_sword", "direction": "neutral", "method": "imagegen", "imagegen_output_path": "source/weapon-short-sword-32-imagegen.png", "source_path": "32/generated/weapon_short_sword-neutral.png", "final_path": "32/final/weapon_short_sword.png", "prompt_path": "32/prompts/weapon_short_sword.txt"}
+  ],
+  "visual_review": {
+    "path": "64/qa/visual-review.json",
+    "status": "accepted"
+  },
+  "copyright_notes": [
+    "The prior bird-headed internet reference is not used and is removed from the published history.",
+    "The photographed shirt graphic is replaced by an original abstract teal lightning motif.",
+    "No franchise character, logo, or trademark is requested or preserved."
+  ]
+}

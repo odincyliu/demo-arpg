@@ -1,0 +1,100 @@
+{
+  "schema_version": 2,
+  "character": "student_dualblade",
+  "body_cell_size": 64,
+  "logical_directions": [
+    "south",
+    "southeast",
+    "east",
+    "northeast",
+    "north",
+    "northwest",
+    "west",
+    "southwest"
+  ],
+  "mirror_sources": {
+    "southwest": "southeast",
+    "west": "east",
+    "northwest": "northeast"
+  },
+  "body_assets": {
+    "south": "res://assets/characters/student_dualblade/body/idle_south.png",
+    "southeast": "res://assets/characters/student_dualblade/body/idle_southeast.png",
+    "east": "res://assets/characters/student_dualblade/body/idle_east.png",
+    "northeast": "res://assets/characters/student_dualblade/body/idle_northeast.png",
+    "north": "res://assets/characters/student_dualblade/body/idle_north.png"
+  },
+  "animations": {
+    "idle": {"frames": 4, "fps": 5.0, "loop": true},
+    "walk": {"frames": 6, "fps": 10.0, "loop": true},
+    "attack_01": {"frames": 8, "fps": 14.0, "loop": false, "impact_frame": 3}
+  },
+  "rig": {
+    "profile": "humanoid_biped",
+    "landmarks": {
+      "south": {
+        "root": [32, 60],
+        "crown": [32, 4],
+        "hand_screen_left": [19, 41],
+        "hand_screen_right": [44, 41]
+      },
+      "southeast": {
+        "root": [32, 60],
+        "crown": [32, 4],
+        "hand_screen_left": [22, 40],
+        "hand_screen_right": [40, 38]
+      },
+      "east": {
+        "root": [32, 60],
+        "crown": [32, 4],
+        "hand_screen_left": [27, 40],
+        "hand_screen_right": [35, 39]
+      },
+      "northeast": {
+        "root": [32, 60],
+        "crown": [32, 4],
+        "hand_screen_left": [23, 40],
+        "hand_screen_right": [41, 40]
+      },
+      "north": {
+        "root": [32, 60],
+        "crown": [32, 4],
+        "hand_screen_left": [20, 41],
+        "hand_screen_right": [43, 41]
+      }
+    }
+  },
+  "render_contract": {
+    "body_track": "base",
+    "weapon_track": "prop_effect",
+    "nodes": ["WeaponLeft", "Body", "WeaponRight"],
+    "weapon_origin": "grip",
+    "transform_units": "body-cell pixels and clockwise degrees",
+    "active_weapon_layer_is_selected_per_direction_and_frame": true
+  },
+  "equipment_profiles": {
+    "dual_short_swords": {
+      "weapon": "res://assets/weapons/short_sword/weapon.json",
+      "body_animation_profile": "dual_wield_light",
+      "instances": [
+        {"socket": "hand_screen_left", "default_rotation_degrees": 135},
+        {"socket": "hand_screen_right", "default_rotation_degrees": -135}
+      ]
+    }
+  },
+  "animation_policy": {
+    "idle_and_walk": "weapon-neutral body anchors are reused with procedural bobbing",
+    "attacks": "the body anchor leans while independent weapon nodes perform the swing",
+    "weapon_swaps": "replace weapon.json and texture when the body profile is compatible",
+    "large_weapons": "spears, bows, or heavy weapons require their own body animation profile"
+  },
+  "provenance": {
+    "method": "OpenAI built-in image generation plus deterministic chroma-key and fixed-cell processing",
+    "reference": "user-supplied child photo used for general appearance only and not stored in the project",
+    "excluded_sources": [
+      "previous bird-headed internet image",
+      "photographed shirt character artwork",
+      "franchise characters, logos, and trademarks"
+    ]
+  }
+}
