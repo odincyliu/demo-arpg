@@ -4,15 +4,9 @@ extends CharacterBody2D
 signal attack_started(direction: String)
 signal hit_confirmed(target: Node, damage: int)
 
-const CHARACTER_METADATA_PATH := "res://assets/characters/student_dualblade/modular_character.json"
-const WEAPON_METADATA_PATH := "res://assets/weapons/short_sword/weapon.json"
-const BODY_CELL_SIZE := 64.0
-const BODY_CELL_CENTER := Vector2(32.0, 32.0)
-const MIRROR_SOURCES := {
-    "southwest": "southeast",
-    "west": "east",
-    "northwest": "northeast",
-}
+const DEFAULT_CHARACTER_PROFILE := (
+    "res://assets/characters/super_clone_cyborg/character_profile.json"
+)
 const ANGLE_DIRECTIONS := [
     "east",
     "southeast",
@@ -24,6 +18,7 @@ const ANGLE_DIRECTIONS := [
     "northeast",
 ]
 
+@export_file("*.json") var character_profile_path: String = DEFAULT_CHARACTER_PROFILE
 @export var move_speed: float = 190.0
 @export var attack_move_multiplier: float = 0.38
 @export var arena_bounds := Rect2(-700.0, -390.0, 1400.0, 780.0)
@@ -31,8 +26,6 @@ const ANGLE_DIRECTIONS := [
 
 @onready var visual_rig: Node2D = $VisualRig
 @onready var body: AnimatedSprite2D = $VisualRig/Body
-@onready var weapon_left: Sprite2D = $VisualRig/WeaponLeft
-@onready var weapon_right: Sprite2D = $VisualRig/WeaponRight
 @onready var attack_pivot: Node2D = $AttackPivot
 @onready var attack_hitbox: Area2D = $AttackPivot/AttackHitbox
 @onready var attack_shape: CollisionShape2D = $AttackPivot/AttackHitbox/CollisionShape2D
@@ -43,8 +36,7 @@ var combat_state: String = "free"
 var debug_visible: bool = false
 var is_attacking: bool = false
 var attack_direction := Vector2.DOWN
-var _character_metadata: Dictionary = {}
-var _weapon_grip := Vector2(16.0, 26.0)
+var character_profile: Dictionary = {}
 var _hit_registry: Dictionary = {}
 var _hitbox_active: bool = false
 var _lunge_velocity := Vector2.ZERO
@@ -53,12 +45,11 @@ var _lunge_applied: bool = false
 
 func _ready() -> void:
     add_to_group("player")
-    _character_metadata = SpriteFramesBuilder.load_json(CHARACTER_METADATA_PATH)
-    body.sprite_frames = SpriteFramesBuilder.build(CHARACTER_METADATA_PATH)
+    character_profile = SpriteFramesBuilder.load_json(character_profile_path)
+    body.sprite_frames = SpriteFramesBuilder.build(character_profile_path)
     body.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
     body.frame_changed.connect(_on_body_frame_changed)
     body.animation_finished.connect(_on_animation_finished)
-    _configure_weapons()
     attack_hitbox.area_entered.connect(_on_attack_area_entered)
     _set_hitbox_active(false)
     _play_directional_animation("idle", facing_direction)
@@ -134,14 +125,29 @@ func set_debug_visible(enabled: bool) -> void:
 
 func get_debug_summary() -> String:
     var frame := body.frame if body != null else -1
-    return "Facing: %s\nAnimation: %s (frame %d)\nCombat: %s\nHitbox: %s\nSwing hits: %d" % [
+    return "Facing: %s\nAnimation: %s (frame %d / atlas %d)\nCombat: %s\nHitbox: %s\nSwing hits: %d" % [
         facing_direction.to_upper(),
         current_action,
         frame,
+        get_current_atlas_column(),
         combat_state,
         "ACTIVE" if _hitbox_active else "off",
         _hit_registry.size(),
     ]
+
+
+func get_current_atlas_column() -> int:
+    var animations: Dictionary = character_profile.get("animations", {})
+    var animation_data: Dictionary = animations.get(current_action, {})
+    var columns: Array = animation_data.get("columns", [])
+    if columns.is_empty():
+        return -1
+    return int(columns[posmod(body.frame, columns.size())])
+
+
+func get_direction_row(direction: String) -> int:
+    var rows: Dictionary = character_profile.get("direction_rows", {})
+    return int(rows.get(direction, -1))
 
 
 static func quantize_direction(input_vector: Vector2) -> String:
@@ -186,31 +192,16 @@ func _read_movement_input() -> Vector2:
     return movement.normalized()
 
 
-func _configure_weapons() -> void:
-    var weapon_metadata := SpriteFramesBuilder.load_json(WEAPON_METADATA_PATH)
-    var weapon_texture := load(str(weapon_metadata.get("texture", ""))) as Texture2D
-    var landmarks: Dictionary = weapon_metadata.get("landmarks", {})
-    _weapon_grip = _as_vector2(landmarks.get("grip", []), _weapon_grip)
-    var cell_size := float(weapon_metadata.get("cell_size", 32))
-    var grip_offset := Vector2(cell_size * 0.5, cell_size * 0.5) - _weapon_grip
-    for weapon: Sprite2D in [weapon_left, weapon_right]:
-        weapon.texture = weapon_texture
-        weapon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-        weapon.centered = true
-        weapon.offset = grip_offset
-
-
 func _play_directional_animation(action: String, direction: String) -> void:
     var animation_name := "%s_%s" % [action, direction]
     if not body.sprite_frames.has_animation(animation_name):
         push_error("Missing player animation: %s" % animation_name)
         return
     facing_direction = direction
-    body.flip_h = MIRROR_SOURCES.has(direction)
+    body.flip_h = false
     current_action = action
     if body.animation != animation_name or not body.is_playing():
         body.play(animation_name)
-    _update_visual_pose()
 
 
 func _is_playing_direction(direction: String) -> bool:
@@ -218,7 +209,6 @@ func _is_playing_direction(direction: String) -> bool:
 
 
 func _on_body_frame_changed() -> void:
-    _update_visual_pose()
     if not is_attacking:
         return
     var frame := body.frame
@@ -234,137 +224,6 @@ func _on_body_frame_changed() -> void:
     if frame == attack_data.impact_frame and not _lunge_applied:
         _lunge_applied = true
         _lunge_velocity += attack_direction * attack_data.lunge
-
-
-func _update_visual_pose() -> void:
-    if body == null or weapon_left == null or weapon_right == null:
-        return
-    body.position = _body_frame_offset(current_action, body.frame)
-    if current_action == "attack_01":
-        var attack_pose := _get_attack_pose(facing_direction, body.frame)
-        var attack_left := _as_vector2(
-            attack_pose.get("hand_screen_left", []),
-            Vector2(19.0, 41.0)
-        )
-        var attack_right := _as_vector2(
-            attack_pose.get("hand_screen_right", []),
-            Vector2(44.0, 41.0)
-        )
-        weapon_left.position = body.position + attack_left - BODY_CELL_CENTER
-        weapon_right.position = body.position + attack_right - BODY_CELL_CENTER
-        weapon_left.rotation_degrees = float(attack_pose.get("weapon_left_degrees", -45.0))
-        weapon_right.rotation_degrees = float(attack_pose.get("weapon_right_degrees", 45.0))
-        weapon_left.z_index = int(attack_pose.get("weapon_left_z", 1))
-        weapon_right.z_index = int(attack_pose.get("weapon_right_z", 1))
-        return
-
-    var sockets := _get_direction_sockets(facing_direction)
-    weapon_left.position = body.position + sockets.get("left", Vector2(19.0, 41.0)) - BODY_CELL_CENTER
-    weapon_right.position = body.position + sockets.get("right", Vector2(44.0, 41.0)) - BODY_CELL_CENTER
-    weapon_left.rotation_degrees = _weapon_pose_degrees("left", current_action, body.frame)
-    weapon_right.rotation_degrees = _weapon_pose_degrees("right", current_action, body.frame)
-    _update_weapon_layers(facing_direction)
-
-
-func _get_direction_sockets(direction: String) -> Dictionary:
-    var source_direction: String = MIRROR_SOURCES.get(direction, direction)
-    var rig: Dictionary = _character_metadata.get("rig", {})
-    var landmarks: Dictionary = rig.get("landmarks", {})
-    var direction_landmarks: Dictionary = landmarks.get(source_direction, {})
-    var left := _as_vector2(
-        direction_landmarks.get("hand_screen_left", []),
-        Vector2(19.0, 41.0)
-    )
-    var right := _as_vector2(
-        direction_landmarks.get("hand_screen_right", []),
-        Vector2(44.0, 41.0)
-    )
-    if MIRROR_SOURCES.has(direction):
-        return {
-            "left": Vector2(BODY_CELL_SIZE - right.x, right.y),
-            "right": Vector2(BODY_CELL_SIZE - left.x, left.y),
-        }
-    return {"left": left, "right": right}
-
-
-func _get_attack_pose(direction: String, frame: int) -> Dictionary:
-    var source_direction: String = MIRROR_SOURCES.get(direction, direction)
-    var rig: Dictionary = _character_metadata.get("rig", {})
-    var attack_poses: Dictionary = rig.get("attack_poses", {})
-    var direction_poses: Array = attack_poses.get(source_direction, [])
-    if direction_poses.is_empty():
-        push_error("Missing attack poses for direction: %s" % source_direction)
-        return {}
-    var source_pose: Variant = direction_poses[posmod(frame, direction_poses.size())]
-    if not source_pose is Dictionary:
-        push_error("Invalid attack pose for %s frame %d" % [source_direction, frame])
-        return {}
-    if MIRROR_SOURCES.has(direction):
-        return mirror_attack_pose(source_pose)
-    return source_pose
-
-
-static func mirror_attack_pose(source_pose: Dictionary) -> Dictionary:
-    var source_left := _as_vector2(
-        source_pose.get("hand_screen_left", []),
-        Vector2(19.0, 41.0)
-    )
-    var source_right := _as_vector2(
-        source_pose.get("hand_screen_right", []),
-        Vector2(44.0, 41.0)
-    )
-    return {
-        "hand_screen_left": Vector2(BODY_CELL_SIZE - source_right.x, source_right.y),
-        "hand_screen_right": Vector2(BODY_CELL_SIZE - source_left.x, source_left.y),
-        "weapon_left_degrees": -float(source_pose.get("weapon_right_degrees", 45.0)),
-        "weapon_right_degrees": -float(source_pose.get("weapon_left_degrees", -45.0)),
-        "weapon_left_z": int(source_pose.get("weapon_right_z", 1)),
-        "weapon_right_z": int(source_pose.get("weapon_left_z", 1)),
-    }
-
-
-func _body_frame_offset(action: String, frame: int) -> Vector2:
-    match action:
-        "idle":
-            var idle_y := [0.0, -1.0, 0.0, 0.0]
-            return Vector2(0.0, idle_y[frame % idle_y.size()])
-        "walk":
-            var walk_y := [0.0, 1.0, 0.0, -1.0, 0.0, 1.0]
-            return Vector2(0.0, walk_y[frame % walk_y.size()])
-    return Vector2.ZERO
-
-
-func _weapon_pose_degrees(side: String, action: String, frame: int) -> float:
-    var sign := -1.0 if side == "left" else 1.0
-    match action:
-        "idle":
-            var idle_delta := [0.0, 2.0, 0.0, -2.0]
-            return sign * (45.0 + idle_delta[frame % idle_delta.size()])
-        "walk":
-            var walk_delta := [0.0, -8.0, 0.0, 8.0, 0.0, -4.0]
-            return sign * (45.0 + walk_delta[frame % walk_delta.size()])
-    return sign * 45.0
-
-
-func _update_weapon_layers(direction: String) -> void:
-    if direction in ["north", "northeast", "northwest"]:
-        weapon_left.z_index = -1
-        weapon_right.z_index = -1
-    elif direction == "east":
-        weapon_left.z_index = -1
-        weapon_right.z_index = 1
-    elif direction == "west":
-        weapon_left.z_index = 1
-        weapon_right.z_index = -1
-    else:
-        weapon_left.z_index = 1
-        weapon_right.z_index = 1
-
-
-static func _as_vector2(value: Variant, fallback: Vector2) -> Vector2:
-    if value is Array and value.size() >= 2:
-        return Vector2(float(value[0]), float(value[1]))
-    return fallback
 
 
 func _on_animation_finished() -> void:
@@ -419,13 +278,13 @@ func _draw() -> void:
         return
     draw_circle(Vector2.ZERO, 15.0, Color(0.2, 1.0, 0.35, 0.18))
     draw_arc(Vector2.ZERO, 15.0, 0.0, TAU, 32, Color(0.2, 1.0, 0.35), 1.5)
-    draw_line(Vector2.ZERO, attack_direction * 78.0, Color(0.2, 0.8, 1.0), 2.0)
+    draw_line(Vector2.ZERO, attack_direction * 82.0, Color(0.2, 0.8, 1.0), 2.0)
 
     var forward := attack_direction
     var side := Vector2(-forward.y, forward.x)
-    var center := forward * 44.0
-    var half_width := 30.0
-    var half_height := 23.0
+    var center := forward * 46.0
+    var half_width := 34.0
+    var half_height := 27.0
     var points := PackedVector2Array([
         center - forward * half_width - side * half_height,
         center + forward * half_width - side * half_height,

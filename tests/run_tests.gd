@@ -1,5 +1,17 @@
 extends SceneTree
 
+const PROFILE_PATH := "res://assets/characters/super_clone_cyborg/character_profile.json"
+const DIRECTIONS := [
+    "south",
+    "southeast",
+    "east",
+    "northeast",
+    "north",
+    "northwest",
+    "west",
+    "southwest",
+]
+
 var _failures: Array[String] = []
 
 
@@ -9,8 +21,8 @@ func _initialize() -> void:
 
 func _run() -> void:
     _test_direction_quantization()
-    _test_animation_metadata()
-    _test_attack_frame_regions()
+    _test_character_profile()
+    _test_animation_regions()
 
     var packed_scene := load("res://scenes/CombatTest.tscn") as PackedScene
     _expect(packed_scene != null, "CombatTest.tscn loads")
@@ -25,37 +37,42 @@ func _run() -> void:
 
     var player := arena.get_node("Player") as ModularPlayer
     _expect(player != null, "Player exists in CombatTest")
-    _expect(player.body.sprite_frames.get_animation_names().size() == 24, "24 logical animations were built")
-    _expect(player.body.sprite_frames.get_frame_count("attack_01_east") == 8, "Attack_01 has eight runtime frames")
-    _expect(player.body.animation == "idle_south", "Player starts in south idle")
-    _expect(player.weapon_left.texture != null and player.weapon_right.texture != null, "Two independent weapon sprites are equipped")
-    _expect(player.weapon_left.get_parent() == player.visual_rig, "Left weapon is separate from the body sprite")
-    _expect(player.weapon_right.get_parent() == player.visual_rig, "Right weapon is separate from the body sprite")
-    player._play_directional_animation("idle", "east")
-    _expect(player.body.animation == "idle_east" and not player.body.flip_h, "Right movement renders the east-facing animation")
-    player._play_directional_animation("idle", "west")
-    _expect(player.body.animation == "idle_west" and player.body.flip_h, "Left movement mirrors the east body while moving west")
-    player._play_directional_animation("idle", "north")
-    _expect(player.weapon_left.z_index < player.body.z_index, "North-facing weapons render behind the body")
-    player._play_directional_animation("idle", "south")
-    _expect(player.weapon_left.z_index > player.body.z_index, "South-facing weapons render in front of the body")
+    if player == null:
+        arena.queue_free()
+        _finish()
+        return
+
     _expect(
-        is_equal_approx(player.weapon_left.rotation_degrees, -45.0)
-        and is_equal_approx(player.weapon_right.rotation_degrees, 45.0),
-        "South idle holds both sword tips upward in a normal forward grip"
+        player.body.sprite_frames.get_animation_names().size() == 24,
+        "Three actions expose eight independent directions"
     )
-    for frame in range(6):
-        var walk_left := Vector2.UP.rotated(
-            deg_to_rad(player._weapon_pose_degrees("left", "walk", frame))
-        )
-        var walk_right := Vector2.UP.rotated(
-            deg_to_rad(player._weapon_pose_degrees("right", "walk", frame))
-        )
+    _expect(
+        player.body.sprite_frames.get_frame_count("walk_northwest") == 8,
+        "Northwest walk uses all eight source run frames"
+    )
+    _expect(
+        player.body.sprite_frames.get_frame_count("attack_01_east") == 8,
+        "Attack_01 preserves the eight-frame combat timing contract"
+    )
+    _expect(player.body.animation == "idle_south", "Player starts in south idle")
+    _expect(
+        player.get_node_or_null("VisualRig/WeaponLeft") == null
+        and player.get_node_or_null("VisualRig/WeaponRight") == null,
+        "The licensed combat atlas keeps hands and weapon in one rendered frame"
+    )
+
+    for direction: String in DIRECTIONS:
+        player._play_directional_animation("idle", direction)
+        var frame_texture := player.body.sprite_frames.get_frame_texture(
+            "idle_%s" % direction,
+            0
+        ) as AtlasTexture
+        _expect(not player.body.flip_h, "%s does not use horizontal mirroring" % direction)
         _expect(
-            walk_left.y < -0.5 and walk_right.y < -0.5,
-            "Walk frame %d keeps both sword tips above their grips" % frame
+            frame_texture != null
+            and frame_texture.region.position.y == player.get_direction_row(direction) * 128.0,
+            "%s selects its own authored atlas row" % direction
         )
-    _expect_all_impact_poses_face_their_direction(player)
 
     player._play_directional_animation("idle", "southwest")
     var keyboard_attack := InputEventKey.new()
@@ -67,13 +84,31 @@ func _run() -> void:
         and player.attack_direction.is_equal_approx(
             ModularPlayer.direction_to_vector("southwest")
         ),
-        "J attack follows the current facing direction instead of the mouse position"
+        "J attack follows the current facing direction"
+    )
+    _expect(
+        player.body.animation == "attack_01_southwest",
+        "Southwest attack selects the southwest source row"
     )
     player._on_animation_finished()
 
     var dummies := get_nodes_in_group("training_dummy")
-    _expect(dummies.size() == 7, "CombatTest contains seven training dummies")
-    if player == null or dummies.size() < 3:
+    _expect(dummies.size() == 7, "CombatTest contains seven Kenney monsters")
+    for dummy_node: Node in dummies:
+        var dummy := dummy_node as TrainingDummy
+        _expect(
+            dummy != null and dummy.visual_root.get_child_count() == 9,
+            "Each enemy is assembled from nine Monster Builder layers"
+        )
+        if dummy != null:
+            for part_node: Node in dummy.visual_root.get_children():
+                var part := part_node as Sprite2D
+                _expect(
+                    part != null and part.texture != null,
+                    "Monster layer %s has a licensed texture" % part_node.name
+                )
+
+    if dummies.size() < 3:
         arena.queue_free()
         _finish()
         return
@@ -81,35 +116,54 @@ func _run() -> void:
     var test_positions := [Vector2(54, -15), Vector2(62, 0), Vector2(58, 16)]
     for index in range(dummies.size()):
         var dummy := dummies[index] as TrainingDummy
-        dummy.global_position = test_positions[index] if index < 3 else Vector2(400 + index * 30, 300)
+        dummy.global_position = (
+            test_positions[index]
+            if index < 3
+            else Vector2(400 + index * 30, 300)
+        )
 
     var attack_started := player.start_attack(Vector2.RIGHT)
     _expect(attack_started, "Player can start Attack_01")
     _expect(player.facing_direction == "east", "Explicit right aim quantizes to east")
     _expect(is_zero_approx(player.attack_pivot.rotation), "East hitbox pivot points east")
-    _expect_attack_pose_applied(player, "east", 0)
 
     var frame_budget := 60
     while player.body.frame < player.attack_data.impact_frame and frame_budget > 0:
         await process_frame
         frame_budget -= 1
-    _expect(player.body.frame == 3, "Attack reaches metadata impact frame 3")
-    _expect_attack_pose_applied(player, "east", 3)
+    _expect(player.body.frame == 3, "Attack reaches impact frame 3")
     _expect(
-        is_equal_approx(player.weapon_left.rotation_degrees, 135.0)
-        and is_equal_approx(player.weapon_right.rotation_degrees, 45.0),
-        "East impact pose points both blades toward the right attack direction"
+        player.get_current_atlas_column() == 14,
+        "Impact frame selects the integrated weapon contact pose"
+    )
+    var impact_texture := player.body.sprite_frames.get_frame_texture(
+        "attack_01_east",
+        3
+    ) as AtlasTexture
+    _expect(
+        impact_texture != null
+        and impact_texture.region == Rect2(14 * 128, 0, 128, 128),
+        "East impact uses atlas column 14 and east row 0"
     )
 
     await create_timer(1.0, true, false, true).timeout
     for index in range(3):
         var dummy := dummies[index] as TrainingDummy
-        _expect(dummy.current_hp == 75, "Grouped dummy %d is damaged exactly once" % (index + 1))
-        _expect(dummy.global_position.distance_to(test_positions[index]) > 1.0, "Grouped dummy %d receives knockback" % (index + 1))
+        _expect(
+            dummy.current_hp == 75,
+            "Grouped monster %d is damaged exactly once" % (index + 1)
+        )
+        _expect(
+            dummy.global_position.distance_to(test_positions[index]) > 1.0,
+            "Grouped monster %d receives knockback" % (index + 1)
+        )
 
     _expect(arena.combat_hit_count == 3, "One swing registers all three grouped hits")
     _expect(arena.hit_stop_count == 1, "Grouped hits aggregate to one hit stop")
-    _expect(arena.last_aggregated_hit_count == 3, "Impact aggregation sees three simultaneous targets")
+    _expect(
+        arena.last_aggregated_hit_count == 3,
+        "Impact aggregation sees three simultaneous targets"
+    )
     _expect(arena.combat_camera.last_impulse <= 3.0, "Camera impulse respects the cap")
     _expect(not player.is_attacking, "Attack returns to the free state")
 
@@ -134,196 +188,96 @@ func _test_direction_quantization() -> void:
             ModularPlayer.quantize_direction(vector) == samples[vector],
             "Direction quantization: %s" % samples[vector]
         )
-    _expect(is_equal_approx(Vector2(1, 1).normalized().length(), 1.0), "Diagonal movement input normalizes")
+    _expect(
+        is_equal_approx(Vector2(1, 1).normalized().length(), 1.0),
+        "Diagonal movement input normalizes"
+    )
 
 
-func _test_animation_metadata() -> void:
-    var path := "res://assets/characters/student_dualblade/modular_character.json"
-    _expect(FileAccess.file_exists(path), "Modular character metadata exists")
-    var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
-    _expect(parsed is Dictionary, "Animation metadata parses")
-    if not parsed is Dictionary:
-        return
-    var animations: Dictionary = parsed.get("animations", {})
-    _expect(parsed.get("schema_version", 0) == 3, "Modular metadata uses per-frame pose schema 3")
-    _expect(animations.size() == 3, "Metadata describes idle, walk, and attack")
+func _test_character_profile() -> void:
+    _expect(FileAccess.file_exists(PROFILE_PATH), "Character profile exists")
+    var profile := SpriteFramesBuilder.load_json(PROFILE_PATH)
+    _expect(profile.get("schema_version", 0) == 1, "Character profile uses schema 1")
+    _expect(profile.get("license", "") == "CC0-1.0", "Player profile declares CC0")
+    _expect(
+        SpriteFramesBuilder._as_vector2(
+            profile.get("cell_size", []),
+            Vector2.ZERO
+        ) == Vector2(128, 128),
+        "Atlas cells are native 128px"
+    )
+    _expect(
+        profile.get("logical_directions", []).size() == 8,
+        "Profile exposes eight logical directions"
+    )
+
+    var direction_rows: Dictionary = profile.get("direction_rows", {})
+    var unique_rows: Dictionary = {}
+    for direction: String in DIRECTIONS:
+        _expect(direction_rows.has(direction), "%s has an explicit atlas row" % direction)
+        unique_rows[int(direction_rows.get(direction, -1))] = true
+    _expect(unique_rows.size() == 8, "All eight directions use distinct source rows")
+
+    var animations: Dictionary = profile.get("animations", {})
+    _expect(animations.size() == 3, "Profile describes idle, walk, and attack")
+    _expect(animations.get("idle", {}).get("columns", []).size() == 4, "Idle has four frames")
+    _expect(animations.get("walk", {}).get("columns", []).size() == 8, "Walk has eight frames")
     var attack: Dictionary = animations.get("attack_01", {})
-    _expect(attack.get("frames", 0) == 8, "Attack_01 has eight frames")
-    _expect(attack.get("impact_frame", -1) == 3, "Attack_01 impact frame is machine-readable")
-    _expect(parsed.get("body_cell_size", 0) == 64, "Modular body cell size is 64px")
-    _expect(parsed.get("logical_directions", []).size() == 8, "Metadata exposes eight logical directions")
-    var body_assets: Dictionary = parsed.get("body_assets", {})
-    _expect(body_assets.size() == 5, "Five authored body directions are available")
-    for direction: String in body_assets:
-        _expect(FileAccess.file_exists(body_assets[direction]), "Body asset exists: %s" % direction)
-    var mirrors: Dictionary = parsed.get("mirror_sources", {})
-    _expect(mirrors.get("west", "") == "east", "West explicitly mirrors the east body source")
+    _expect(attack.get("columns", []).size() == 8, "Attack timing has eight frames")
+    _expect(attack.get("columns", [])[3] == 14, "Attack impact maps to source column 14")
 
-    var action_assets: Dictionary = parsed.get("action_assets", {})
-    var attack_assets: Dictionary = action_assets.get("attack_01", {})
-    _expect(attack_assets.size() == 5, "Five authored Attack_01 body strips are available")
-    for direction: String in attack_assets:
-        var strip_path := str(attack_assets[direction])
-        _expect(FileAccess.file_exists(strip_path), "Attack strip exists: %s" % direction)
-        var strip := load(strip_path) as Texture2D
-        _expect(
-            strip != null and strip.get_size() == Vector2(512, 64),
-            "Attack strip is 512x64 with eight native cells: %s" % direction
-        )
-
-    var rig: Dictionary = parsed.get("rig", {})
-    var attack_poses: Dictionary = rig.get("attack_poses", {})
-    _expect(attack_poses.size() == 5, "Five authored directions expose per-frame attack poses")
-    var required_pose_keys := [
-        "hand_screen_left",
-        "hand_screen_right",
-        "weapon_left_degrees",
-        "weapon_right_degrees",
-        "weapon_left_z",
-        "weapon_right_z",
-    ]
-    for direction: String in attack_poses:
-        var poses: Array = attack_poses[direction]
-        _expect(poses.size() == 8, "Attack pose count is eight: %s" % direction)
-        for frame in range(poses.size()):
-            var pose: Dictionary = poses[frame]
-            for key: String in required_pose_keys:
-                _expect(pose.has(key), "%s frame %d has %s" % [direction, frame, key])
-            for socket_key: String in ["hand_screen_left", "hand_screen_right"]:
-                var socket := _array_to_vector2(pose.get(socket_key, []))
-                _expect(
-                    socket.x >= 0.0 and socket.x <= 64.0
-                    and socket.y >= 0.0 and socket.y <= 64.0,
-                    "%s frame %d keeps %s inside the body cell" % [
-                        direction,
-                        frame,
-                        socket_key,
-                    ]
-                )
-
-    var east_impact: Dictionary = attack_poses.get("east", [])[3]
-    var west_impact := ModularPlayer.mirror_attack_pose(east_impact)
-    var east_left := _array_to_vector2(east_impact["hand_screen_left"])
-    var east_right := _array_to_vector2(east_impact["hand_screen_right"])
+    var atlas_path := str(profile.get("texture", ""))
+    _expect(FileAccess.file_exists(atlas_path), "Licensed player atlas exists")
+    var atlas := load(atlas_path) as Texture2D
     _expect(
-        west_impact["hand_screen_left"] == Vector2(64.0 - east_right.x, east_right.y)
-        and west_impact["hand_screen_right"] == Vector2(64.0 - east_left.x, east_left.y),
-        "Mirrored attack swaps sockets and reflects their X coordinates"
+        atlas != null and atlas.get_size() == Vector2(4096, 1024),
+        "Player atlas is the complete 32 by 8 source sheet"
     )
     _expect(
-        is_equal_approx(
-            float(west_impact["weapon_left_degrees"]),
-            -float(east_impact["weapon_right_degrees"])
-        )
-        and is_equal_approx(
-            float(west_impact["weapon_right_degrees"]),
-            -float(east_impact["weapon_left_degrees"])
+        FileAccess.file_exists(str(profile.get("source_notice", ""))),
+        "Player source and license notice exists"
+    )
+    _expect(
+        FileAccess.file_exists(
+            "res://assets/third_party/kenney/monster_builder_pack/LICENSE.txt"
         ),
-        "Mirrored attack swaps and negates weapon angles"
-    )
-    _expect(
-        west_impact["weapon_left_z"] == east_impact["weapon_right_z"]
-        and west_impact["weapon_right_z"] == east_impact["weapon_left_z"],
-        "Mirrored attack swaps weapon layers"
-    )
-
-    var weapon_path := "res://assets/weapons/short_sword/weapon.json"
-    _expect(FileAccess.file_exists(weapon_path), "Independent weapon metadata exists")
-    var weapon_parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(weapon_path))
-    _expect(weapon_parsed is Dictionary, "Independent weapon metadata parses")
-    if weapon_parsed is Dictionary:
-        _expect(FileAccess.file_exists(weapon_parsed.get("texture", "")), "Independent weapon texture exists")
-    var equipment_profiles: Dictionary = parsed.get("equipment_profiles", {})
-    var dual_swords: Dictionary = equipment_profiles.get("dual_short_swords", {})
-    var instances: Array = dual_swords.get("instances", [])
-    _expect(
-        instances.size() == 2
-        and instances[0].get("default_rotation_degrees", 0) == -45
-        and instances[1].get("default_rotation_degrees", 0) == 45,
-        "Equipment metadata defaults to forward-grip sword angles"
+        "Original Kenney CC0 license text exists"
     )
 
 
-func _test_attack_frame_regions() -> void:
-    var frames := SpriteFramesBuilder.build(
-        "res://assets/characters/student_dualblade/modular_character.json"
-    )
-    for direction: String in [
-        "south",
-        "southeast",
-        "east",
-        "northeast",
-        "north",
-        "northwest",
-        "west",
-        "southwest",
-    ]:
-        var animation_name := "attack_01_%s" % direction
-        _expect(frames.get_frame_count(animation_name) == 8, "%s has eight regions" % animation_name)
-        for frame in range(8):
-            var texture := frames.get_frame_texture(animation_name, frame)
-            _expect(texture is AtlasTexture, "%s frame %d is an AtlasTexture" % [animation_name, frame])
-            if texture is AtlasTexture:
-                var atlas_texture := texture as AtlasTexture
+func _test_animation_regions() -> void:
+    var profile := SpriteFramesBuilder.load_json(PROFILE_PATH)
+    var direction_rows: Dictionary = profile.get("direction_rows", {})
+    var animations: Dictionary = profile.get("animations", {})
+    var frames := SpriteFramesBuilder.build(PROFILE_PATH)
+    for action: String in animations:
+        var columns: Array = animations[action].get("columns", [])
+        for direction: String in DIRECTIONS:
+            var animation_name := "%s_%s" % [action, direction]
+            _expect(
+                frames.get_frame_count(animation_name) == columns.size(),
+                "%s exposes every configured frame" % animation_name
+            )
+            for frame_index in range(columns.size()):
+                var texture := frames.get_frame_texture(animation_name, frame_index)
                 _expect(
-                    atlas_texture.region == Rect2(frame * 64.0, 0.0, 64.0, 64.0),
-                    "%s frame %d selects its independent body region" % [
-                        animation_name,
-                        frame,
-                    ]
+                    texture is AtlasTexture,
+                    "%s frame %d is an AtlasTexture" % [animation_name, frame_index]
                 )
-
-
-func _expect_attack_pose_applied(player: ModularPlayer, direction: String, frame: int) -> void:
-    var pose := player._get_attack_pose(direction, frame)
-    var left_socket := _array_to_vector2(pose.get("hand_screen_left", []))
-    var right_socket := _array_to_vector2(pose.get("hand_screen_right", []))
-    _expect(
-        player.weapon_left.position + ModularPlayer.BODY_CELL_CENTER == left_socket,
-        "%s frame %d left weapon grip is exactly on the hand socket" % [direction, frame]
-    )
-    _expect(
-        player.weapon_right.position + ModularPlayer.BODY_CELL_CENTER == right_socket,
-        "%s frame %d right weapon grip is exactly on the hand socket" % [direction, frame]
-    )
-    _expect(
-        player.weapon_left.z_index == int(pose.get("weapon_left_z", 0))
-        and player.weapon_right.z_index == int(pose.get("weapon_right_z", 0)),
-        "%s frame %d applies per-frame weapon layers" % [direction, frame]
-    )
-
-
-func _expect_all_impact_poses_face_their_direction(player: ModularPlayer) -> void:
-    for direction: String in [
-        "south",
-        "southeast",
-        "east",
-        "northeast",
-        "north",
-        "northwest",
-        "west",
-        "southwest",
-    ]:
-        var pose := player._get_attack_pose(direction, 3)
-        var forward := ModularPlayer.direction_to_vector(direction)
-        var left_blade := Vector2.UP.rotated(
-            deg_to_rad(float(pose.get("weapon_left_degrees", 0.0)))
-        )
-        var right_blade := Vector2.UP.rotated(
-            deg_to_rad(float(pose.get("weapon_right_degrees", 0.0)))
-        )
-        _expect(
-            left_blade.dot(forward) > 0.6 and right_blade.dot(forward) > 0.6,
-            "%s impact blades point into the selected attack direction" % direction
-        )
-
-
-func _array_to_vector2(value: Variant) -> Vector2:
-    if value is Vector2:
-        return value
-    if value is Array and value.size() >= 2:
-        return Vector2(float(value[0]), float(value[1]))
-    return Vector2.ZERO
+                if texture is AtlasTexture:
+                    var region := (texture as AtlasTexture).region
+                    _expect(
+                        region == Rect2(
+                            int(columns[frame_index]) * 128,
+                            int(direction_rows[direction]) * 128,
+                            128,
+                            128
+                        ),
+                        "%s frame %d selects its authored cell" % [
+                            animation_name,
+                            frame_index,
+                        ]
+                    )
 
 
 func _expect(condition: bool, message: String) -> void:

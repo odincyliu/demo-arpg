@@ -1,9 +1,0 @@
-Use case: stylized-concept
-Asset type: independent native 32x32-budget pixel-art game weapon prop
-Input images: Image 1 is the accepted generated sword draft used only for identity and palette.
-Primary request: Redraw one single original short fantasy sword specifically for a native 32x32 pixel budget, oriented vertically with the blade pointing up and the handle at the bottom.
-Style/medium: crisp hand-authored 2D pixel art, very limited palette, hard square pixel edges, readable at 32x32 without fractional scaling.
-Weapon design: compact silver double-edged short blade, dark steel guard, teal-wrapped handle, small dark pommel; age-appropriate fantasy game styling; no blood or damage.
-Rig readability: the full sword is isolated; the center of the grip and blade tip are visually unambiguous for socket landmarks.
-Scene/backdrop: perfectly flat solid #ff00ff chroma-key background, uniform edge to edge.
-Constraints: exactly one weapon centered with generous padding; full blade, guard, grip, and pommel inside the image; no hand, arm, person, second weapon, sheath, text, frame, UI, shadow, floor, gradient, glow, watermark, logo, trademark, franchise design, or extra object. Do not use #ff00ff in the weapon.

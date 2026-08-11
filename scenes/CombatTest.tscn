@@ -33,24 +33,31 @@ z_index = 10
 
 [node name="DummyEastA" parent="." instance=ExtResource("3_dummy")]
 position = Vector2(62, -32)
+monster_variant = 0
 
 [node name="DummyEastB" parent="." instance=ExtResource("3_dummy")]
 position = Vector2(72, -16)
+monster_variant = 1
 
 [node name="DummyEastC" parent="." instance=ExtResource("3_dummy")]
 position = Vector2(62, 0)
+monster_variant = 2
 
 [node name="DummyNorth" parent="." instance=ExtResource("3_dummy")]
 position = Vector2(0, -112)
+monster_variant = 3
 
 [node name="DummySouth" parent="." instance=ExtResource("3_dummy")]
 position = Vector2(0, 116)
+monster_variant = 4
 
 [node name="DummyWest" parent="." instance=ExtResource("3_dummy")]
 position = Vector2(-118, -10)
+monster_variant = 5
 
 [node name="DummySoutheast" parent="." instance=ExtResource("3_dummy")]
 position = Vector2(116, 104)
+monster_variant = 0
 
 [node name="CombatCamera" type="Camera2D" parent="."]
 target_path = NodePath("../Player")
@@ -70,7 +77,7 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 18
-text = "WASD Move   •   LMB Mouse Aim   •   J / Space Facing Attack   •   F3 Debug"
+text = "WASD Move   •   LMB Aim Attack   •   J / Space Facing Attack   •   F3 Debug"
 
 [node name="Panel" type="ColorRect" parent="DebugHUD"]
 offset_left = 18.0

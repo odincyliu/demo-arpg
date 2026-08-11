@@ -1,8 +1,0 @@
-Use case: stylized-concept
-Asset type: Godot 4 top-down pixel-art character body anchor, native 64x64 after processing
-References: accepted original front and back body anchors
-Request: exactly one full-body unarmed sprite of the same boy facing east, strict side profile toward screen-right.
-Direction lock: head, torso, hips, knees, and feet all point screen-right; at most one profile eye.
-Identity: short black hair, charcoal sports shirt with an original teal accent, navy shorts, dark sneakers, teal wrist wraps.
-Constraints: empty hands, no weapons, no copied shirt artwork, no bird features, no logos, no text, no watermark.
-Background: perfectly flat solid #FF00FF with no shadow, floor, gradient, texture, or reflection.

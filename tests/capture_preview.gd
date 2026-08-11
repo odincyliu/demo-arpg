@@ -45,7 +45,7 @@ func _capture() -> void:
         quit(1)
         return
     var north_image := viewport_texture.get_image()
-    var north_path := ProjectSettings.globalize_path("res://artifacts/north-rear-preview.png")
+    var north_path := ProjectSettings.globalize_path("res://artifacts/cc0-north-preview.png")
     result = north_image.save_png(north_path)
     if result != OK:
         push_error("Could not save north capture: %s" % error_string(result))
@@ -63,7 +63,7 @@ func _capture() -> void:
         quit(1)
         return
     var south_image := viewport_texture.get_image()
-    var south_path := ProjectSettings.globalize_path("res://artifacts/south-forward-grip-preview.png")
+    var south_path := ProjectSettings.globalize_path("res://artifacts/cc0-south-preview.png")
     result = south_image.save_png(south_path)
     if result != OK:
         push_error("Could not save south capture: %s" % error_string(result))

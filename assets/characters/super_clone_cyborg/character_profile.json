@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "profile_type": "atlas_character",
+  "id": "super_clone_cyborg_armored",
+  "display_name": "Super Clone Cyborg (Armored)",
+  "texture": "res://assets/third_party/opengameart/super_clone_cyborg/sclone_armored.png",
+  "license": "CC0-1.0",
+  "source_notice": "res://assets/third_party/opengameart/super_clone_cyborg/SOURCE.md",
+  "cell_size": [128, 128],
+  "logical_directions": [
+    "south",
+    "southeast",
+    "east",
+    "northeast",
+    "north",
+    "northwest",
+    "west",
+    "southwest"
+  ],
+  "direction_rows": {
+    "east": 0,
+    "northeast": 1,
+    "north": 2,
+    "northwest": 3,
+    "west": 4,
+    "southwest": 5,
+    "south": 6,
+    "southeast": 7
+  },
+  "animations": {
+    "idle": {
+      "columns": [0, 1, 2, 3],
+      "fps": 5.0,
+      "loop": true
+    },
+    "walk": {
+      "columns": [4, 5, 6, 7, 8, 9, 10, 11],
+      "fps": 12.0,
+      "loop": true
+    },
+    "attack_01": {
+      "columns": [12, 12, 13, 14, 15, 15, 0, 1],
+      "fps": 14.0,
+      "loop": false,
+      "active_start_frame": 2,
+      "impact_frame": 3,
+      "active_end_frame": 4
+    }
+  },
+  "equipment": {
+    "mode": "baked",
+    "notes": "The weapon is integrated into every combat frame to keep hand, body, and blade motion visually continuous. Swap this profile to replace the complete character atlas."
+  }
+}

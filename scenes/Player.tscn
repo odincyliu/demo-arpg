@@ -5,14 +5,14 @@
 
 [sub_resource type="CapsuleShape2D" id="CapsulePlayer"]
 radius = 13.0
-height = 28.0
+height = 42.0
 
 [sub_resource type="RectangleShape2D" id="RectangleAttack"]
-size = Vector2(60, 46)
+size = Vector2(68, 54)
 
 [sub_resource type="CapsuleShape2D" id="CapsuleHurtbox"]
 radius = 14.0
-height = 34.0
+height = 46.0
 
 [node name="Player" type="CharacterBody2D"]
 collision_layer = 2
@@ -21,21 +21,14 @@ script = ExtResource("1_player")
 attack_data = ExtResource("2_attack")
 
 [node name="VisualRig" type="Node2D" parent="."]
-position = Vector2(0, -34)
-scale = Vector2(1.5, 1.5)
-
-[node name="WeaponLeft" type="Sprite2D" parent="VisualRig"]
-texture_filter = 1
+position = Vector2(0, -43)
 
 [node name="Body" type="AnimatedSprite2D" parent="VisualRig"]
 texture_filter = 1
 centered = true
 
-[node name="WeaponRight" type="Sprite2D" parent="VisualRig"]
-texture_filter = 1
-
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, -12)
+position = Vector2(0, -20)
 shape = SubResource("CapsulePlayer")
 
 [node name="AttackPivot" type="Node2D" parent="."]
@@ -47,7 +40,7 @@ monitoring = false
 monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="AttackPivot/AttackHitbox"]
-position = Vector2(44, -16)
+position = Vector2(46, -18)
 shape = SubResource("RectangleAttack")
 disabled = true
 
@@ -58,7 +51,7 @@ monitoring = false
 monitorable = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
-position = Vector2(0, -16)
+position = Vector2(0, -22)
 shape = SubResource("CapsuleHurtbox")
 
 [node name="AttackAudio" type="AudioStreamPlayer2D" parent="."]
