@@ -39,6 +39,21 @@ func _run() -> void:
     _expect(player.weapon_left.z_index < player.body.z_index, "North-facing weapons render behind the body")
     player._play_directional_animation("idle", "south")
     _expect(player.weapon_left.z_index > player.body.z_index, "South-facing weapons render in front of the body")
+    _expect_all_impact_poses_face_their_direction(player)
+
+    player._play_directional_animation("idle", "southwest")
+    var keyboard_attack := InputEventKey.new()
+    keyboard_attack.keycode = KEY_J
+    keyboard_attack.pressed = true
+    player._unhandled_input(keyboard_attack)
+    _expect(
+        player.facing_direction == "southwest"
+        and player.attack_direction.is_equal_approx(
+            ModularPlayer.direction_to_vector("southwest")
+        ),
+        "J attack follows the current facing direction instead of the mouse position"
+    )
+    player._on_animation_finished()
 
     var dummies := get_nodes_in_group("training_dummy")
     _expect(dummies.size() == 7, "CombatTest contains seven training dummies")
@@ -54,7 +69,7 @@ func _run() -> void:
 
     var attack_started := player.start_attack(Vector2.RIGHT)
     _expect(attack_started, "Player can start Attack_01")
-    _expect(player.facing_direction == "east", "Mouse/right aim quantizes to east")
+    _expect(player.facing_direction == "east", "Explicit right aim quantizes to east")
     _expect(is_zero_approx(player.attack_pivot.rotation), "East hitbox pivot points east")
     _expect_attack_pose_applied(player, "east", 0)
 
@@ -65,9 +80,9 @@ func _run() -> void:
     _expect(player.body.frame == 3, "Attack reaches metadata impact frame 3")
     _expect_attack_pose_applied(player, "east", 3)
     _expect(
-        is_equal_approx(player.weapon_left.rotation_degrees, 45.0)
-        and is_equal_approx(player.weapon_right.rotation_degrees, -45.0),
-        "Impact pose forms the metadata-driven crossed blade angles"
+        is_equal_approx(player.weapon_left.rotation_degrees, 135.0)
+        and is_equal_approx(player.weapon_right.rotation_degrees, 45.0),
+        "East impact pose points both blades toward the right attack direction"
     )
 
     await create_timer(1.0, true, false, true).timeout
@@ -251,6 +266,31 @@ func _expect_attack_pose_applied(player: ModularPlayer, direction: String, frame
         and player.weapon_right.z_index == int(pose.get("weapon_right_z", 0)),
         "%s frame %d applies per-frame weapon layers" % [direction, frame]
     )
+
+
+func _expect_all_impact_poses_face_their_direction(player: ModularPlayer) -> void:
+    for direction: String in [
+        "south",
+        "southeast",
+        "east",
+        "northeast",
+        "north",
+        "northwest",
+        "west",
+        "southwest",
+    ]:
+        var pose := player._get_attack_pose(direction, 3)
+        var forward := ModularPlayer.direction_to_vector(direction)
+        var left_blade := Vector2.UP.rotated(
+            deg_to_rad(float(pose.get("weapon_left_degrees", 0.0)))
+        )
+        var right_blade := Vector2.UP.rotated(
+            deg_to_rad(float(pose.get("weapon_right_degrees", 0.0)))
+        )
+        _expect(
+            left_blade.dot(forward) > 0.6 and right_blade.dot(forward) > 0.6,
+            "%s impact blades point into the selected attack direction" % direction
+        )
 
 
 func _array_to_vector2(value: Variant) -> Vector2:

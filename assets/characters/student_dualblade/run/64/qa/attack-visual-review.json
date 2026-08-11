@@ -1,6 +1,6 @@
 {
   "accepted": true,
-  "reviewer_notes": "Accepted after rejecting and regenerating one south strip that drifted to a side view. The final five authored strips and three deterministic mirrors preserve front, side, diagonal, and back orientation. All 40 authored body frames are weapon-neutral and materially distinct. The Godot-rendered 8x8 composite confirms every sword grip is placed at the per-frame hand socket, impact frame 3 forms a readable X, and mirrored directions swap angles and layers without front/back inversion.",
+  "reviewer_notes": "Accepted after rejecting and regenerating one south strip that drifted to a side view. The final five authored strips and three deterministic mirrors preserve front, side, diagonal, and back orientation. All 40 authored body frames are weapon-neutral and materially distinct. The Godot-rendered 8x8 composite confirms every sword grip is placed at the per-frame hand socket, each impact pose points into its selected compass direction, keyboard attacks follow facing rather than the mouse, and mirrored directions swap angles and layers without front/back inversion.",
   "checks": {
     "reference_identity": "pass",
     "direction": "pass",
@@ -16,6 +16,7 @@
     "hand_socket_complete": "pass",
     "weapon_grip_alignment": "pass",
     "weapon_angle_continuity": "pass",
+    "weapon_angles_follow_attack_direction": "pass",
     "weapon_layering": "pass",
     "transparent_background": "pass",
     "chroma_residue": "pass",

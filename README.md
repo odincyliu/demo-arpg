@@ -10,8 +10,8 @@
 操作：
 
 - `WASD`：八方向移動；對角輸入會 normalize。
-- 滑鼠：決定攻擊方向。
-- `Left Mouse`、`J` 或 `Space`：雙刀 Attack_01。
+- `Left Mouse`：朝滑鼠游標方向使用雙刀 Attack_01。
+- `J` 或 `Space`：朝角色目前面向使用雙刀 Attack_01。
 - `F3`：切換碰撞、Hitbox、Hurtbox、方向、動畫格與戰鬥狀態資訊。
 
 ## 模組化角色與武器
@@ -64,7 +64,7 @@
 ./tools/run_tests.ps1
 ```
 
-測試涵蓋 8 向量化、模組化 metadata、五個原生 Body 方向、兩個獨立 Weapon Sprite、左右鏡像、前後圖層、24 組邏輯動畫、7 隻敵人、三目標同時命中、單次 swing 去重、擊退、hit stop 彙整、camera cap 與攻擊狀態回復。
+測試涵蓋 8 向量化、鍵盤攻擊跟隨角色面向、八方向命中刀勢、模組化 metadata、五個原生 Body 方向、兩個獨立 Weapon Sprite、左右鏡像、前後圖層、24 組邏輯動畫、7 隻敵人、三目標同時命中、單次 swing 去重、擊退、hit stop 彙整、camera cap 與攻擊狀態回復。
 
 ## Web / GitHub Pages
 

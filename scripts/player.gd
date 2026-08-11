@@ -91,21 +91,20 @@ func _physics_process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-    var wants_attack := false
     if event is InputEventMouseButton:
-        wants_attack = event.button_index == MOUSE_BUTTON_LEFT and event.pressed
+        if event.button_index != MOUSE_BUTTON_LEFT or not event.pressed:
+            return
+        var mouse_aim := get_global_mouse_position() - global_position
+        if mouse_aim.length_squared() < 64.0:
+            mouse_aim = direction_to_vector(facing_direction)
+        start_attack(mouse_aim)
     elif event is InputEventKey:
-        wants_attack = (
+        if (
             event.pressed
             and not event.echo
             and (event.keycode == KEY_J or event.keycode == KEY_SPACE)
-        )
-
-    if wants_attack:
-        var aim_vector := get_global_mouse_position() - global_position
-        if aim_vector.length_squared() < 64.0:
-            aim_vector = direction_to_vector(facing_direction)
-        start_attack(aim_vector)
+        ):
+            start_attack(direction_to_vector(facing_direction))
 
 
 func start_attack(aim_vector: Vector2) -> bool:

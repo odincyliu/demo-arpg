@@ -70,7 +70,7 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
 theme_override_constants/shadow_offset_x = 2
 theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 18
-text = "WASD Move   •   Mouse Aim   •   LMB / J / Space Attack   •   F3 Debug"
+text = "WASD Move   •   LMB Mouse Aim   •   J / Space Facing Attack   •   F3 Debug"
 
 [node name="Panel" type="ColorRect" parent="DebugHUD"]
 offset_left = 18.0
