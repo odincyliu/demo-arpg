@@ -120,7 +120,7 @@ func _verify_hold_to_attack(
     player.velocity = Vector3.ZERO
     var cast_counter := {"count": 0}
     player.combat_event.connect(func(message: String, _color: Color) -> void:
-        if message.contains("施放 → 冰環"):
+        if message.contains("Cast -> Ice Nova"):
             cast_counter["count"] = int(cast_counter["count"]) + 1
     )
 

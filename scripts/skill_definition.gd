@@ -97,7 +97,7 @@ var lifesteal_ratio: float = 0.0
 
 func apply_concept(concept: SkillConcept) -> String:
     if concept == null:
-        return "Concept 不存在"
+        return "Concept does not exist"
     concepts.append(concept)
     if concept.concept_kind == &"Skill":
         preset_id = concept.concept_id
@@ -120,19 +120,19 @@ func apply_concept(concept: SkillConcept) -> String:
 
 func apply_structural_change(field: StringName, value: Variant) -> String:
     if field not in STRUCTURAL_FIELDS:
-        return "未知結構欄位：%s" % field
+        return "Unknown structural field: %s" % field
     match field:
         &"active_skill_id", &"emitter_type", &"action_type", &"shape_type", &"element":
             if not value is StringName and not value is String:
-                return "%s 必須是 StringName" % field
+                return "%s must be a StringName" % field
             set(String(field), StringName(value))
         &"color":
             if not value is Color:
-                return "color 必須是 Color"
+                return "color must be a Color"
             color = value as Color
         &"radial":
             if not value is bool:
-                return "radial 必須是 bool"
+                return "radial must be a bool"
             radial = bool(value)
         &"modifier_type":
             var modifier := StringName(value)
@@ -152,11 +152,11 @@ func apply_stat_operation(operation: Dictionary) -> String:
     var operation_type := StringName(operation.get("op", &""))
     var value: Variant = operation.get("value")
     if not NUMERIC_FIELDS.has(field):
-        return "未知數值欄位：%s" % field
+        return "Unknown numeric field: %s" % field
     if operation_type not in STAT_OPERATIONS:
-        return "不允許的數值操作：%s" % operation_type
+        return "Disallowed numeric operation: %s" % operation_type
     if not value is int and not value is float:
-        return "%s 的數值型別錯誤" % field
+        return "%s has an invalid numeric value type" % field
 
     var current: Variant = get(String(field))
     var calculated: float
@@ -220,25 +220,25 @@ func get_operation_key(operation_id: StringName) -> StringName:
 
 
 func get_stats_text() -> String:
-    var details := "傷害 %.0f　冷卻 %.2fs" % [damage, cooldown]
+    var details := "Damage %.0f | Cooldown %.2fs" % [damage, cooldown]
     if action_type in [&"projectile", &"summon"]:
-        details += "　投射物 %d" % projectile_count
+        details += " | Projectiles %d" % projectile_count
     if repeat_count > 1:
-        details += "　重複 %d 段" % repeat_count
+        details += " | Repeats %d" % repeat_count
     if action_type == &"damage" and shape_type in [&"circle", &"rotate"]:
-        details += "　範圍 %.1fm" % area_radius
+        details += " | Area %.1fm" % area_radius
     if target_range > 0.0:
-        details += "　射程 %.1fm　準心 %.1fm" % [target_range, target_snap_radius]
+        details += " | Range %.1fm | Snap %.1fm" % [target_range, target_snap_radius]
     if pierce_count > 0:
-        details += "\n穿透 %d" % pierce_count
+        details += "\nPierce %d" % pierce_count
     if chain_count > 0:
-        details += "　連鎖 %d" % chain_count
+        details += " | Chain %d" % chain_count
     if explosion_radius > 0.0:
-        details += "　爆炸 %.1fm" % explosion_radius
+        details += " | Explosion %.1fm" % explosion_radius
     if homing_strength > 0.0:
-        details += "　追蹤"
+        details += " | Homing"
     if splash_radius > 0.0:
-        details += "　擴散 %.1fm" % splash_radius
+        details += " | Splash %.1fm" % splash_radius
     return details
 
 
@@ -253,4 +253,4 @@ func get_inline_chain_text() -> String:
     var steps: PackedStringArray = []
     for concept: SkillConcept in concepts:
         steps.append(concept.display_name)
-    return "  →  ".join(steps)
+    return " -> ".join(steps)

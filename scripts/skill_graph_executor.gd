@@ -233,7 +233,7 @@ func _execute_triggers(event: CombatEvent) -> void:
         if queued_any:
             _trigger_last_time[trigger_node.node_id] = _elapsed_time
             event_fired.emit(
-                "觸發 → %s" % concept.display_name,
+                "Triggered -> %s" % concept.display_name,
                 Color("80d8ff")
             )
 

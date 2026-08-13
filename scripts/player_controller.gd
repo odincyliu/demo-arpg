@@ -117,7 +117,7 @@ func try_dash() -> void:
     _dash_cooldown_remaining = dash_cooldown
     _dash_trail_timer = 0.0
     _animate_dash()
-    combat_event.emit("衝刺", Color("7ad7ff"))
+    combat_event.emit("Dash", Color("7ad7ff"))
     _skill_executor.request_external_event(&"dash", global_position)
 
 
@@ -129,7 +129,7 @@ func simulate_damage() -> void:
         Color("ff496f"),
         1.1
     )
-    combat_event.emit("模擬受傷 -24", Color("ff688a"))
+    combat_event.emit("Simulated Damage -24", Color("ff688a"))
     _skill_executor.request_external_event(&"damaged", global_position)
 
 

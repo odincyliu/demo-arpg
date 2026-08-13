@@ -13,6 +13,7 @@ func _run_test() -> void:
     var failures: PackedStringArray = []
     _verify_projectile_art(failures)
     _verify_projectile_identity_survives_density_limit(failures)
+    await _verify_repeated_damage_numbers(failures)
     await _verify_chain_lightning_vfx(failures)
     for raw_concept: Variant in CONCEPT_LIBRARY.get_catalog().values():
         var concept := raw_concept as SkillConcept
@@ -104,6 +105,30 @@ func _verify_projectile_identity_survives_density_limit(failures: PackedStringAr
         )
     manager.clear_active()
     holder.queue_free()
+
+
+func _verify_repeated_damage_numbers(failures: PackedStringArray) -> void:
+    var holder := Node3D.new()
+    root.add_child(holder)
+    for hit_index: int in 8:
+        COMBAT_VFX.spawn_damage_number(
+            holder,
+            Vector3(0.0, 2.4, 0.0),
+            10.0 + hit_index,
+            Color("ff9b55"),
+            hit_index == 7
+        )
+    await process_frame
+    var lanes: Dictionary = {}
+    for number: Node in get_nodes_in_group("damage_number_vfx"):
+        if number.get_parent() == holder:
+            lanes[int(number.get_meta("damage_number_lane", -1))] = true
+    if lanes.size() != 8:
+        failures.append("Repeated damage numbers overlapped lanes or were dropped")
+    for _frame: int in 50:
+        await physics_frame
+    holder.queue_free()
+    await process_frame
 
 
 func _verify_chain_lightning_vfx(failures: PackedStringArray) -> void:

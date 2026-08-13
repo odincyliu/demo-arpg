@@ -47,15 +47,15 @@ func cast_skill(
 ) -> void:
     if definition == null or int(context.get("graph_revision", -1)) != _graph_revision:
         return
-    event_fired.emit("施放 → %s" % definition.display_name, definition.color)
+    event_fired.emit("Cast -> %s" % definition.display_name, definition.color)
     for repeat_index: int in definition.repeat_count:
         if repeat_index > 0:
             await get_tree().create_timer(definition.repeat_interval).timeout
             if not is_instance_valid(source) or int(context.get("graph_revision", -1)) != _graph_revision:
                 return
             event_fired.emit(
-                "%s → 第 %d/%d 段" % [
-                    "連擊" if definition.has_modifier(&"combo") else "連射",
+                "%s -> Stage %d/%d" % [
+                    "Combo" if definition.has_modifier(&"combo") else "Rapid Fire",
                     repeat_index + 1,
                     definition.repeat_count,
                 ],
@@ -162,7 +162,7 @@ func _cast_thunder_chain(
     var targets := _get_shape_targets(definition, origin, facing_direction, aim_position)
     if targets.is_empty():
         COMBAT_VFX.spawn_pulse(get_tree().current_scene, origin, definition.color, 0.35)
-        event_fired.emit("雷光球 → 無有效目標", definition.color.darkened(0.15))
+        event_fired.emit("Chain Lightning -> No valid target", definition.color.darkened(0.15))
         return
 
     var chain_key := definition.get_operation_key(&"modifier_chain")
@@ -336,7 +336,7 @@ func _on_projectile_impact(projectile: SkillProjectile, target: Node3D) -> void:
     var hit_direction := projectile.direction
     _deal_hit(definition, target, projectile.source, context, 1.0, &"projectile", hit_direction)
     event_fired.emit(
-        "%s → %s" % ["命中", definition.display_name],
+        "%s -> %s" % ["Hit", definition.display_name],
         definition.color
     )
     var split_key := definition.get_operation_key(&"modifier_split")
@@ -395,7 +395,7 @@ func _deal_hit(
         "killed": killed,
         "amount": actual_damage,
     })
-    event_fired.emit("%s → %s" % ["暴擊命中" if critical else "命中", definition.display_name], definition.color)
+    event_fired.emit("%s -> %s" % ["Critical Hit" if critical else "Hit", definition.display_name], definition.color)
     _apply_secondary_operations(definition, target, source, context, hit_direction)
 
 
@@ -432,7 +432,7 @@ func _apply_secondary_operations(
             definition.splash_damage_multiplier,
             &"splash"
         )
-        event_fired.emit("命中改造 → 擴散傷害", definition.color)
+        event_fired.emit("Hit Modifier -> Splash Damage", definition.color)
     var explosion_key := definition.get_operation_key(&"effect_explosion")
     if definition.explosion_radius > 0.0 and explosion_key not in operations:
         _damage_area(
@@ -445,7 +445,7 @@ func _apply_secondary_operations(
             definition.explosion_damage_multiplier,
             &"explosion"
         )
-        event_fired.emit("後續效果 → 範圍爆炸", definition.color)
+        event_fired.emit("Follow-up Effect -> Area Explosion", definition.color)
     var chain_key := definition.get_operation_key(&"modifier_chain")
     if definition.chain_count > 0 and chain_key not in operations:
         _chain_from(
@@ -522,7 +522,7 @@ func _chain_from(
         multiplier *= 0.82
         completed_jumps += 1
     if completed_jumps > 0:
-        event_fired.emit("後續效果 → 連鎖 %d 跳" % completed_jumps, definition.color)
+        event_fired.emit("Follow-up Effect -> Chain %d jumps" % completed_jumps, definition.color)
 
 
 func _spawn_split_projectiles(
@@ -546,7 +546,7 @@ func _spawn_split_projectiles(
             context,
             false
         )
-    event_fired.emit("命中分裂 → %d 道子攻擊" % count, definition.color)
+    event_fired.emit("Split on Hit -> %d child attacks" % count, definition.color)
 
 
 func _context_with_operation(

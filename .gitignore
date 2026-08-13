@@ -2,3 +2,4 @@
 .validation-appdata/
 artifacts/*.log
 artifacts/*.png.import
+docs/*.import

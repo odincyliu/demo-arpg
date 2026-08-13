@@ -53,12 +53,12 @@ func set_runtime_graph(graph: SkillGraph) -> void:
         return
     _runtime_graph = graph
     var definition := graph.get_primary_skill()
-    _stats_label.text = "DMG %.0f  CD %.2f  ×%d" % [
+    _stats_label.text = "DMG %.0f  CD %.2f  x%d" % [
         definition.damage,
         definition.cooldown,
         definition.projectile_count,
     ]
-    _stats_label.tooltip_text = "%s\n能力：%s" % [definition.get_stats_text(), definition.get_tags_text()]
+    _stats_label.tooltip_text = "%s\nCapabilities: %s" % [definition.get_stats_text(), definition.get_tags_text()]
     _stats_label.add_theme_color_override("font_color", definition.color.lightened(0.18))
 
 
@@ -174,7 +174,7 @@ func _build_interface() -> void:
     for node_id: int in SkillGraph.MAX_NODES:
         if node_id > 0:
             var divider := Label.new()
-            divider.text = "·"
+            divider.text = "|"
             divider.add_theme_color_override("font_color", Color("56758d"))
             strip.add_child(divider)
         var button := Button.new()
@@ -190,7 +190,7 @@ func _build_interface() -> void:
     status.add_theme_constant_override("separation", 1)
     strip.add_child(status)
     _stats_label = Label.new()
-    _stats_label.text = "DMG 32  CD .55  ×1"
+    _stats_label.text = "DMG 32  CD .55  x1"
     _stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     _stats_label.add_theme_font_size_override("font_size", 11)
     status.add_child(_stats_label)
@@ -222,7 +222,7 @@ func _build_interface() -> void:
     hint.offset_top = -29.0
     hint.offset_right = 910.0
     hint.offset_bottom = -8.0
-    hint.text = "左鍵/WASD 移動　右鍵攻擊　Shift+左鍵原地攻擊　Space Dash　Q 受傷　R 重置"
+    hint.text = "LMB/WASD Move  |  RMB Attack  |  Shift+LMB Stand Attack  |  Space Dash  |  Q Damage  |  R Reset"
     hint.add_theme_font_size_override("font_size", 12)
     hint.add_theme_color_override("font_color", Color(0.72, 0.82, 0.9, 0.62))
     root.add_child(hint)
@@ -267,32 +267,32 @@ func _build_editor(root: Control) -> void:
     _parent_selector.item_selected.connect(_on_parent_selected)
     row.add_child(_parent_selector)
     _show_all_toggle = CheckButton.new()
-    _show_all_toggle.text = "顯示全部"
+    _show_all_toggle.text = "Show All"
     _show_all_toggle.toggled.connect(_on_show_all_toggled)
     row.add_child(_show_all_toggle)
     var clear_button := Button.new()
-    clear_button.text = "清空"
+    clear_button.text = "Clear"
     clear_button.pressed.connect(_on_clear_pressed)
     row.add_child(clear_button)
     var close_button := Button.new()
-    close_button.text = "收合"
+    close_button.text = "Close"
     close_button.pressed.connect(_close_editor)
     row.add_child(close_button)
 
     _trigger_controls = HBoxContainer.new()
     _trigger_controls.add_theme_constant_override("separation", 5)
     content.add_child(_trigger_controls)
-    _every_n = _add_spin_control(_trigger_controls, "每 N 次", 1.0, 20.0, 1.0, 1.0)
-    _chance = _add_spin_control(_trigger_controls, "機率 %", 0.0, 100.0, 1.0, 100.0)
-    _internal_cooldown = _add_spin_control(_trigger_controls, "內冷 s", 0.0, 5.0, 0.01, 0.08)
-    _health_ratio = _add_spin_control(_trigger_controls, "血量 ≤%", 0.0, 100.0, 1.0, 100.0)
+    _every_n = _add_spin_control(_trigger_controls, "Every N", 1.0, 20.0, 1.0, 1.0)
+    _chance = _add_spin_control(_trigger_controls, "Chance %", 0.0, 100.0, 1.0, 100.0)
+    _internal_cooldown = _add_spin_control(_trigger_controls, "ICD s", 0.0, 5.0, 0.01, 0.08)
+    _health_ratio = _add_spin_control(_trigger_controls, "HP <= %", 0.0, 100.0, 1.0, 100.0)
     var status_label := Label.new()
-    status_label.text = "目標狀態"
+    status_label.text = "Target Status"
     _trigger_controls.add_child(status_label)
     _status_selector = OptionButton.new()
     for item: Dictionary in [
-        {"id": &"any", "name": "任意"}, {"id": &"burn", "name": "燃燒"},
-        {"id": &"poison", "name": "中毒"}, {"id": &"frozen", "name": "凍結"},
+        {"id": &"any", "name": "Any"}, {"id": &"burn", "name": "Burning"},
+        {"id": &"poison", "name": "Poisoned"}, {"id": &"frozen", "name": "Frozen"},
     ]:
         _status_selector.add_item(String(item["name"]))
         _status_selector.set_item_metadata(_status_selector.item_count - 1, item["id"])
@@ -368,7 +368,7 @@ func _populate_concepts(kind: StringName, selected_concept_id: StringName = &"")
         if concept.concept_id == selected_concept_id:
             _concept_selector.select(option_index)
     if _concept_selector.item_count == 0:
-        _concept_selector.add_item("沒有相容選項")
+        _concept_selector.add_item("No compatible options")
         _concept_selector.set_item_disabled(0, true)
 
 
@@ -405,7 +405,7 @@ func _find_parent_choice(node_id: int, concept_id: StringName) -> Dictionary:
     return {
         "valid": false,
         "parent": int(parents[0]["id"]) if not parents.is_empty() else SkillGraph.ROOT_PARENT,
-        "reason": reasons[0] if not reasons.is_empty() else "目前沒有可連接的父節點",
+        "reason": reasons[0] if not reasons.is_empty() else "No available parent node",
     }
 
 
@@ -474,7 +474,7 @@ func _commit_editor(concept_id: StringName) -> void:
         "trigger_config": config,
     })
     if not state.valid:
-        _info_label.text = state.reason.replace("\n", "　")
+        _info_label.text = state.reason.replace("\n", " | ")
         _info_label.add_theme_color_override("font_color", Color("ff7b87"))
         return
     _graph = state.result.graph
@@ -516,18 +516,18 @@ func _refresh_editor_info() -> void:
         return
     var node := _graph.get_graph_node(_selected_node_id)
     if node.is_empty():
-        _info_label.text = "選擇 Concept 後會先預覽編譯；只有有效圖會更新戰鬥。"
+        _info_label.text = "Select a Concept to preview it. Only a valid graph updates combat."
         return
     var definition := _graph.get_compiled_skill(node.node_id)
     if definition == null and node.parent_node_id >= 0:
         var parent := _graph.get_graph_node(node.parent_node_id)
         if parent != null:
             definition = _graph.get_compiled_skill(parent.node_id)
-    var detail := "路徑：%s" % CONCEPT_LIBRARY.describe_path(_graph, node.node_id)
+    var detail := "Path: %s" % CONCEPT_LIBRARY.describe_path(_graph, node.node_id)
     if definition != null:
-        detail += "　能力：%s　%s" % [definition.get_tags_text(), definition.get_stats_text().replace("\n", " ")]
+        detail += " | Capabilities: %s | %s" % [definition.get_tags_text(), definition.get_stats_text().replace("\n", " ")]
     if not _graph.validation_errors.is_empty():
-        detail += "　錯誤：%s" % "；".join(_graph.validation_errors)
+        detail += " | Errors: %s" % "; ".join(_graph.validation_errors)
     _info_label.text = detail
     _info_label.add_theme_color_override(
         "font_color",
@@ -542,13 +542,13 @@ func _refresh_slots() -> void:
         var node := _graph.get_graph_node(node_id)
         var button := _slot_buttons[node_id]
         if node.is_empty():
-            button.text = "%d  ＋ 空白" % (node_id + 1)
-            button.tooltip_text = "點擊加入節點"
+            button.text = "%d  + Empty" % (node_id + 1)
+            button.tooltip_text = "Click to add a node"
             button.modulate = Color(0.72, 0.78, 0.84)
             continue
         var concept := CONCEPT_LIBRARY.get_concept(node.concept_id)
         var parent_text := "ROOT" if node.parent_node_id == SkillGraph.ROOT_PARENT else (
-            "PLAYER" if node.parent_node_id == SkillGraph.PLAYER_EVENT_PARENT else "↳%d" % (node.parent_node_id + 1)
+            "PLAYER" if node.parent_node_id == SkillGraph.PLAYER_EVENT_PARENT else "<-%d" % (node.parent_node_id + 1)
         )
         button.text = "%d  %s\n%s" % [node_id + 1, concept.display_name, parent_text]
         button.tooltip_text = "%s\n%s" % [CONCEPT_LIBRARY.get_kind_label(concept.concept_kind), CONCEPT_LIBRARY.describe_path(_graph, node_id)]
@@ -558,7 +558,7 @@ func _refresh_slots() -> void:
 
 
 func _node_has_error(node_id: int) -> bool:
-    var marker := "第 %d 格" % (node_id + 1)
+    var marker := "Slot %d" % (node_id + 1)
     for error: String in _graph.validation_errors:
         if error.contains(marker):
             return true

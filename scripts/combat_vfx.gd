@@ -793,24 +793,70 @@ static func spawn_damage_number(
     if parent == null:
         return
 
+    var lane_index := _next_damage_number_lane(parent)
+    var column := lane_index % 4
+    var row := floori(float(lane_index) / 4.0)
+    var horizontal_axis := Vector3.RIGHT
+    var viewport := parent.get_viewport()
+    if viewport != null:
+        var camera := viewport.get_camera_3d()
+        if camera != null:
+            horizontal_axis = camera.global_transform.basis.x.normalized()
+    var horizontal_offset := (float(column) - 1.5) * 0.72
+    var vertical_offset := float(row) * 0.52 + (0.18 if column % 2 == 1 else 0.0)
+    if critical:
+        vertical_offset += 0.62
+
     var label := Label3D.new()
-    label.text = "%s%.0f" % ["暴擊 " if critical else "", amount]
-    label.font_size = 34 if critical else 26
-    label.outline_size = 8
-    label.modulate = Color.WHITE if critical else color.lightened(0.25)
+    label.text = "%s%.0f" % ["CRIT " if critical else "", amount]
+    label.font_size = 64 if critical else 48
+    label.outline_size = 12 if critical else 9
+    label.outline_modulate = Color(0.015, 0.02, 0.035, 0.98)
+    label.pixel_size = 0.012
+    label.modulate = Color("fff0a0") if critical else color.lightened(0.52)
     label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
     label.no_depth_test = true
     parent.add_child(label)
     label.add_to_group("combat_vfx")
-    label.global_position = world_position
+    label.add_to_group("damage_number_vfx")
+    label.set_meta("damage_number_lane", lane_index)
+    label.global_position = (
+        world_position
+        + horizontal_axis * horizontal_offset
+        + Vector3.UP * vertical_offset
+    )
+    label.scale = Vector3.ONE * (0.48 if critical else 0.58)
 
-    var target_position := label.position + Vector3.UP * (1.4 if critical else 1.0)
+    var start_position := label.position
+    var pop_position := start_position + Vector3.UP * (0.46 if critical else 0.34)
+    var end_position := start_position + Vector3.UP * (1.85 if critical else 1.5)
     var tween := label.create_tween()
+    tween.set_trans(Tween.TRANS_BACK)
+    tween.set_ease(Tween.EASE_OUT)
     tween.set_parallel(true)
-    tween.tween_property(label, "position", target_position, 0.62)
-    tween.tween_property(label, "modulate:a", 0.0, 0.62)
+    tween.tween_property(label, "position", pop_position, 0.12)
+    tween.tween_property(label, "scale", Vector3.ONE * 1.12, 0.12)
+    tween.set_parallel(false)
+    tween.set_trans(Tween.TRANS_QUAD)
+    tween.set_ease(Tween.EASE_OUT)
+    tween.tween_property(label, "scale", Vector3.ONE, 0.1)
+    tween.tween_interval(0.24 if critical else 0.18)
+    tween.set_parallel(true)
+    tween.tween_property(label, "position", end_position, 0.46)
+    tween.tween_property(label, "modulate:a", 0.0, 0.42).set_delay(0.04)
     tween.set_parallel(false)
     tween.tween_callback(Callable(label, "queue_free"))
+
+
+static func _next_damage_number_lane(parent: Node) -> int:
+    var occupied_lanes: Dictionary = {}
+    for child: Node in parent.get_children():
+        if child.has_meta("damage_number_lane"):
+            occupied_lanes[int(child.get_meta("damage_number_lane"))] = true
+    var lane_index := 0
+    while occupied_lanes.has(lane_index):
+        lane_index += 1
+    return lane_index
 
 
 static func spawn_projectile_trail(

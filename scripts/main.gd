@@ -152,31 +152,31 @@ func _setup_hud() -> void:
 func _apply_custom_build(source_graph: SkillGraph) -> void:
     var result := CONCEPT_LIBRARY.compile_graph(source_graph)
     if not result.valid:
-        _hud.log_event("技能圖尚未完成，戰鬥維持上一個有效版本", Color("ff7b87"))
+        _hud.log_event("Skill graph incomplete; combat keeps the last valid version", Color("ff7b87"))
         return
     var graph := result.graph
     _player.set_skill_graph(graph)
     _hud.set_runtime_graph(graph)
-    _hud.log_event("技能連結已即時編譯", graph.get_primary_skill().color)
+    _hud.log_event("Skill graph compiled", graph.get_primary_skill().color)
 
 
 func _on_combat_event(message: String, event_color: Color) -> void:
     _hud.log_event(message, event_color)
-    if message == "衝刺":
+    if message == "Dash":
         _combat_audio.play_dash()
         _camera_shake = maxf(_camera_shake, 0.08)
-    elif message.begins_with("施放"):
+    elif message.begins_with("Cast"):
         _combat_audio.play_cast()
         _camera_shake = maxf(_camera_shake, 0.055)
-    elif message.contains("爆炸"):
+    elif message.contains("Explosion"):
         _combat_audio.play_hit(false, true)
         _camera_shake = maxf(_camera_shake, 0.3)
         _request_hit_stop(0.035, 0.16)
-    elif message.contains("暴擊"):
+    elif message.contains("Critical"):
         _combat_audio.play_hit(true)
         _camera_shake = maxf(_camera_shake, 0.22)
         _request_hit_stop(0.028, 0.2)
-    elif message.contains("命中"):
+    elif message.contains("Hit"):
         _combat_audio.play_hit()
         _camera_shake = maxf(_camera_shake, 0.12)
 
@@ -185,7 +185,7 @@ func _reset_all_dummies() -> void:
     for dummy: Node in get_tree().get_nodes_in_group("damageable"):
         if dummy.has_method("reset_dummy"):
             dummy.call("reset_dummy")
-    _hud.log_event("測試場已重置", Color("8bd8ff"))
+    _hud.log_event("Arena reset", Color("8bd8ff"))
 
 
 func _setup_aim_reticle() -> void:

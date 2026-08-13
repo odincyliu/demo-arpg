@@ -177,7 +177,7 @@ func _test_skill_concept_matrix(failures: PackedStringArray) -> void:
             _expect_complete_or_rejected(
                 failures,
                 single_result,
-                "%s × %s" % [skill.concept_id, supports[first_index].concept_id]
+                "%s x %s" % [skill.concept_id, supports[first_index].concept_id]
             )
             for second_index: int in range(first_index + 1, supports.size()):
                 var pair_result := CONCEPT_LIBRARY.compile_graph(_graph_with_supports(
@@ -187,7 +187,7 @@ func _test_skill_concept_matrix(failures: PackedStringArray) -> void:
                 _expect_complete_or_rejected(
                     failures,
                     pair_result,
-                    "%s × %s + %s" % [
+                    "%s x %s + %s" % [
                         skill.concept_id,
                         supports[first_index].concept_id,
                         supports[second_index].concept_id,

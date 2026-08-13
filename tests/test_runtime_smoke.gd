@@ -80,11 +80,11 @@ func _test_default_parallel_branches(
         failures.append("Hit-split Fireball must start as one projectile")
     for _frame: int in 120:
         await physics_frame
-    if not _messages_contain(messages, "命中分裂"):
+    if not _messages_contain(messages, "Split on Hit"):
         failures.append("Fireball did not split after impact")
-    if not _messages_contain(messages, "冰環"):
+    if not _messages_contain(messages, "Ice Nova"):
         failures.append("Critical branch did not cast Ice Nova")
-    if not _messages_contain(messages, "召喚核心"):
+    if not _messages_contain(messages, "Summon Core"):
         failures.append("Kill branch did not cast Summon Core")
     if player.get_skill_executor().get_active_projectile_count() >= ProjectileManager.MAX_ACTIVE_PROJECTILES:
         failures.append("Default parallel branches escaped projectile recursion guards")
@@ -105,7 +105,7 @@ func _test_external_trigger(
     player.simulate_damage()
     for _frame: int in 10:
         await physics_frame
-    if not _messages_contain(messages, "召喚核心"):
+    if not _messages_contain(messages, "Summon Core"):
         failures.append("Damaged player-event branch did not cast Summon Core")
     _clear_projectiles(player)
 
@@ -267,7 +267,7 @@ func _test_thunder_chain(
         player.get_skill_executor().request_manual_cast(Vector3(0.0, 0.0, -5.0), Vector3(0.0, 0.0, -1.0))
         for _frame: int in 3:
             await physics_frame
-        if _message_count(messages, "後續效果 → 連鎖") != 1:
+        if _message_count(messages, "Follow-up Effect -> Chain") != 1:
             failures.append("Cone Thunder pattern created more than one follow-up chain")
 
     var projectile_result := CONCEPT_LIBRARY.compile_graph(
@@ -289,7 +289,7 @@ func _test_thunder_chain(
             failures.append("Projectile Action did not restore the Thunder Orb projectile")
         for _frame: int in 45:
             await physics_frame
-        if not _messages_contain(messages, "命中分裂"):
+        if not _messages_contain(messages, "Split on Hit"):
             failures.append("Projectile-converted Thunder Orb did not execute Split")
         _clear_projectiles(player)
 
@@ -323,7 +323,7 @@ func _test_thunder_chain(
         await physics_frame
     if float(out_of_range.get("health")) < float(out_of_range.get("max_health")):
         failures.append("Thunder cursor targeting exceeded its 12m range")
-    if not _messages_contain(messages, "無有效目標") or _messages_contain(messages, "命中 → 雷光球"):
+    if not _messages_contain(messages, "No valid target") or _messages_contain(messages, "Hit -> Chain Lightning"):
         failures.append("No-target Thunder cast produced Hit semantics")
 
     _restore_dummies(dummies, original_positions)
@@ -342,7 +342,7 @@ func _test_rapid_fire_and_combo(
     player.try_cast_skill()
     for _frame: int in 30:
         await physics_frame
-    if not _messages_contain(messages, "第 3/3 段"):
+    if not _messages_contain(messages, "Stage 3/3"):
         failures.append("Rapid Fire did not execute three timed volleys")
     _clear_projectiles(player)
 
@@ -358,7 +358,7 @@ func _test_rapid_fire_and_combo(
     player.try_cast_skill()
     for _frame: int in 30:
         await physics_frame
-    if not _messages_contain(messages, "連擊 → 第 3/3 段"):
+    if not _messages_contain(messages, "Combo -> Stage 3/3"):
         failures.append("Melee Combo did not execute three timed hits")
     var side_dummy := _find_dummy_at(dummies, Vector3(3.5, 0.0, 0.0))
     if side_dummy == null or float(side_dummy.get("health")) >= float(side_dummy.get("max_health")):
@@ -396,7 +396,7 @@ func _test_secondary_hit_branch(
         failures.append("Hit-triggered Thunder chain did not originate from the player")
     for _frame: int in 19:
         await physics_frame
-    if _message_count(messages, "雷光球") < 2:
+    if _message_count(messages, "Chain Lightning") < 2:
         failures.append("Primary and splash secondary hits did not independently trigger the branch")
     _clear_projectiles(player)
 
@@ -435,7 +435,7 @@ func _test_dot_kill_semantics(
     var executor := player.get_skill_executor()
     if int(executor.get("_trigger_occurrences").get(2, 0)) != 1:
         failures.append("DoT tick incorrectly emitted Hit events")
-    if not _messages_contain(messages, "召喚核心"):
+    if not _messages_contain(messages, "Summon Core"):
         failures.append("DoT kill did not emit the source-owned Kill event")
     _clear_projectiles(player)
 

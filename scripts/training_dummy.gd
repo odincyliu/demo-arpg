@@ -70,8 +70,8 @@ func take_damage(
     health = maxf(health - amount, 0.0)
     var scene_root := get_tree().current_scene
     COMBAT_VFX.spawn_damage_number(
-        scene_root,
-        global_position + Vector3(0.0, 2.4, 0.0),
+        self,
+        global_position + Vector3(0.0, 3.35, 0.0),
         amount,
         hit_color,
         critical
@@ -155,7 +155,7 @@ func _begin_respawn() -> void:
     var collapse_tween := create_tween()
     collapse_tween.set_trans(Tween.TRANS_BACK)
     collapse_tween.tween_property(_visual_root, "scale", Vector3(1.18, 0.14, 1.18), 0.17)
-    _health_label.text = "木樁 %02d\n重置中…" % dummy_index
+    _health_label.text = "Dummy %02d\nRespawning..." % dummy_index
     await get_tree().create_timer(1.5).timeout
     reset_dummy()
 
@@ -165,11 +165,11 @@ func _update_label() -> void:
         return
     var statuses: PackedStringArray = []
     if _burn_remaining > 0.0:
-        statuses.append("燃燒 %.1fs" % _burn_remaining)
+        statuses.append("Burning %.1fs" % _burn_remaining)
     if _poison_remaining > 0.0:
-        statuses.append("中毒 %.1fs" % _poison_remaining)
+        statuses.append("Poisoned %.1fs" % _poison_remaining)
     if _freeze_remaining > 0.0:
-        statuses.append("凍結 %.1fs" % _freeze_remaining)
+        statuses.append("Frozen %.1fs" % _freeze_remaining)
     if is_equal_approx(health, max_health) and statuses.is_empty():
         _health_label.text = ""
         return

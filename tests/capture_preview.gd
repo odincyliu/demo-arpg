@@ -28,6 +28,18 @@ func _capture() -> void:
         builder.call("_open_editor", 2)
         player.set("_facing_direction", Vector3(0.0, 0.0, -1.0))
         player.try_cast_skill()
+    var dummies := get_nodes_in_group("damageable")
+    var preview_dummy: TrainingDummy
+    if not dummies.is_empty():
+        preview_dummy = dummies.back() as TrainingDummy
+    if preview_dummy != null:
+        for hit_index: int in 6:
+            preview_dummy.take_damage(
+                12.0 + hit_index * 4.0,
+                &"fire",
+                hit_index == 5,
+                Color("ff9b55")
+            )
 
     for _frame: int in 13:
         await process_frame
