@@ -1,0 +1,4 @@
+.godot/
+.validation-appdata/
+artifacts/*.log
+artifacts/*.png.import
