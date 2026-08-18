@@ -1,7 +1,6 @@
-class_name ConceptChainPrototype
+class_name SixLinkPrototype
 extends Node3D
 
-const CONCEPT_LIBRARY := preload("res://scripts/concept_library.gd")
 const PLAYER_SCRIPT := preload("res://scripts/player_controller.gd")
 const DUMMY_SCRIPT := preload("res://scripts/training_dummy.gd")
 const HUD_SCRIPT := preload("res://scripts/hud.gd")
@@ -28,7 +27,7 @@ func _ready() -> void:
     _setup_aim_reticle()
     _setup_combat_audio()
     _setup_hud()
-    _apply_custom_build(_hud.get_graph())
+    _apply_custom_build(_hud.get_build())
 
 
 func _process(delta: float) -> void:
@@ -145,19 +144,19 @@ func _setup_camera() -> void:
 func _setup_hud() -> void:
     _hud = HUD_SCRIPT.new()
     add_child(_hud)
-    _hud.graph_changed.connect(_apply_custom_build)
+    _hud.build_changed.connect(_apply_custom_build)
     _hud.reset_requested.connect(_reset_all_dummies)
 
 
-func _apply_custom_build(source_graph: SkillGraph) -> void:
-    var result := CONCEPT_LIBRARY.compile_graph(source_graph)
+func _apply_custom_build(source_build: SixLinkBuild) -> void:
+    var result := SkillCompiler.compile_build(source_build)
     if not result.valid:
-        _hud.log_event("Skill graph incomplete; combat keeps the last valid version", Color("ff7b87"))
+        _hud.log_event("Six-link draft invalid; combat keeps the last valid build", Color("ff7b87"))
         return
-    var graph := result.graph
-    _player.set_skill_graph(graph)
-    _hud.set_runtime_graph(graph)
-    _hud.log_event("Skill graph compiled", graph.get_primary_skill().color)
+    var build := result.build
+    _player.set_skill_build(build)
+    _hud.set_runtime_build(build)
+    _hud.log_event("Six-link build compiled", build.get_root_core().color)
 
 
 func _on_combat_event(message: String, event_color: Color) -> void:

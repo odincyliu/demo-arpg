@@ -22,7 +22,7 @@ func _capture() -> void:
     await process_frame
     await physics_frame
 
-    var builder := get_first_node_in_group("concept_builder_ui") as PrototypeHud
+    var builder := get_first_node_in_group("six_link_builder_ui") as PrototypeHud
     var player := get_first_node_in_group("player") as PlayerController
     if builder != null and player != null:
         builder.call("_open_editor", 2)

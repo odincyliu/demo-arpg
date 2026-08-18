@@ -2,6 +2,5 @@
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 
-[node name="ConceptChainPrototype" type="Node3D"]
+[node name="SixLinkPrototype" type="Node3D"]
 script = ExtResource("1_main")
-

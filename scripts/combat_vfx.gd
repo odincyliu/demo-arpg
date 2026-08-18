@@ -18,22 +18,8 @@ static func spawn_cast_layers(
     flat_direction = flat_direction.normalized() if flat_direction.length_squared() > 0.01 else Vector3.FORWARD
     _spawn_skill_identity(parent, definition, world_position, flat_direction)
     _spawn_trigger_cue(parent, definition.trigger_type, world_position, flat_direction)
-    _spawn_emitter_cue(parent, definition.emitter_type, world_position)
-    var is_direct_thunder := definition.active_skill_id == &"thunder_orb" and definition.action_type == &"damage"
-    if is_direct_thunder:
-        _spawn_motes(
-            parent,
-            world_position,
-            definition.color.lightened(0.22),
-            5,
-            0.48,
-            0.18,
-            &"vfx_action",
-            false
-        )
-    else:
-        _spawn_action_cue(parent, definition.action_type, world_position, flat_direction, definition.color)
-        _spawn_shape_cue(parent, definition.shape_type, world_position, flat_direction, definition.color)
+    _spawn_core_cue(parent, definition.core_behavior, world_position, flat_direction, definition.color)
+    _spawn_shape_cue(parent, definition.shape_type, world_position, flat_direction, definition.color)
     for modifier_type: StringName in definition.modifier_types:
         _spawn_modifier_cue(parent, modifier_type, world_position, flat_direction, definition.color)
     for effect_type: StringName in definition.effect_types:
@@ -108,7 +94,7 @@ static func _spawn_skill_identity(
         direction: Vector3
 ) -> void:
     match definition.active_skill_id:
-        &"fireball":
+        &"flame_orb":
             _spawn_texture_burst(
                 parent,
                 SKILL_VFX_ASSETS.KENNEY_MUZZLE,
@@ -137,7 +123,7 @@ static func _spawn_skill_identity(
                 &"vfx_skill_identity",
                 -0.45
             )
-        &"ice_nova":
+        &"frost_nova":
             _spawn_animated_skill_sprite(
                 parent,
                 SKILL_VFX_ASSETS.get_cast_frames(definition.active_skill_id),
@@ -152,17 +138,16 @@ static func _spawn_skill_identity(
                 &"vfx_skill_identity",
                 -0.35
             )
-        &"thunder_orb":
-            var is_projectile := definition.action_type == &"projectile"
+        &"chain_lightning":
             _spawn_animated_skill_sprite(
                 parent,
                 SKILL_VFX_ASSETS.get_cast_frames(definition.active_skill_id),
                 world_position + Vector3.UP * 0.08,
                 definition.color.lightened(0.22),
-                0.0075 if is_projectile else 0.0055,
-                0.3 if is_projectile else 0.18,
-                0.82 if is_projectile else 0.62,
-                0.28 if is_projectile else 0.18,
+                0.0055,
+                0.18,
+                0.62,
+                0.18,
                 false,
                 direction,
                 &"vfx_skill_identity",
@@ -182,7 +167,7 @@ static func _spawn_skill_identity(
                 &"vfx_skill_identity",
                 -0.28
             )
-        &"blade_wave":
+        &"shockwave", &"returning_blade":
             _spawn_animated_skill_sprite(
                 parent,
                 SKILL_VFX_ASSETS.get_cast_frames(definition.active_skill_id),
@@ -211,7 +196,7 @@ static func _spawn_skill_identity(
                 &"vfx_skill_identity",
                 0.0
             )
-        &"summon_core":
+        &"summon":
             _spawn_texture_burst(
                 parent,
                 SKILL_VFX_ASSETS.KENNEY_CIRCLE,
@@ -254,7 +239,7 @@ static func _spawn_skill_identity(
                 &"vfx_skill_identity",
                 0.5
             )
-        &"heavy_slash":
+        &"earthbreaker":
             _spawn_animated_skill_sprite(
                 parent,
                 SKILL_VFX_ASSETS.get_cast_frames(definition.active_skill_id),
@@ -283,6 +268,18 @@ static func _spawn_skill_identity(
                 &"vfx_skill_identity",
                 0.0
             )
+        _:
+            _spawn_ring(parent, world_position, definition.color, 0.9 + definition.size_multiplier * 0.35, 0.28, &"vfx_skill_identity")
+            _spawn_motes(
+                parent,
+                world_position + direction * 0.35 + Vector3.UP * 0.55,
+                definition.color.lightened(0.2),
+                4 + absi(hash(definition.active_skill_id)) % 5,
+                0.55 + definition.size_multiplier * 0.18,
+                0.24,
+                &"vfx_skill_identity",
+                definition.element in [&"fire", &"physical"]
+            )
 
 
 static func _spawn_skill_hit_identity(
@@ -292,7 +289,7 @@ static func _spawn_skill_hit_identity(
         direction: Vector3
 ) -> void:
     match definition.active_skill_id:
-        &"fireball":
+        &"flame_orb":
             _spawn_texture_burst(
                 parent,
                 SKILL_VFX_ASSETS.KENNEY_FIRE,
@@ -307,7 +304,7 @@ static func _spawn_skill_hit_identity(
                 &"vfx_skill_identity",
                 0.7
             )
-        &"thunder_orb":
+        &"chain_lightning":
             _spawn_animated_skill_sprite(
                 parent,
                 SKILL_VFX_ASSETS.get_cast_frames(definition.active_skill_id),
@@ -336,7 +333,7 @@ static func _spawn_skill_hit_identity(
                 &"vfx_skill_identity",
                 -0.22
             )
-        &"blade_wave":
+        &"shockwave", &"returning_blade":
             _spawn_texture_burst(
                 parent,
                 SKILL_VFX_ASSETS.KENNEY_SLASH,
@@ -351,7 +348,7 @@ static func _spawn_skill_hit_identity(
                 &"vfx_skill_identity",
                 0.4
             )
-        &"summon_core":
+        &"summon":
             _spawn_texture_burst(
                 parent,
                 SKILL_VFX_ASSETS.KENNEY_STAR,
@@ -366,7 +363,7 @@ static func _spawn_skill_hit_identity(
                 &"vfx_skill_identity",
                 0.65
             )
-        &"heavy_slash":
+        &"earthbreaker":
             _spawn_texture_burst(
                 parent,
                 SKILL_VFX_ASSETS.KENNEY_FLARE,
@@ -381,6 +378,9 @@ static func _spawn_skill_hit_identity(
                 &"vfx_skill_identity",
                 0.18
             )
+        _:
+            _spawn_cross(parent, target_position + Vector3.UP * 0.55, definition.color.lightened(0.18), 0.58 * definition.size_multiplier, &"vfx_skill_identity")
+            _spawn_ring(parent, target_position, definition.color, 0.48 * definition.size_multiplier, 0.18, &"vfx_skill_identity")
 
 
 static func _spawn_trigger_cue(
@@ -389,6 +389,8 @@ static func _spawn_trigger_cue(
         world_position: Vector3,
         direction: Vector3
 ) -> void:
+    if trigger_type == &"":
+        return
     match trigger_type:
         &"critical":
             _spawn_ring(parent, world_position, Color("fff7a8"), 1.4, 0.28, &"vfx_trigger")
@@ -412,53 +414,46 @@ static func _spawn_trigger_cue(
                     &"vfx_trigger"
                 )
         _:
+            var trigger_colors: Dictionary = {
+                &"hit": Color("dce9f3"),
+                &"stun": Color("ffd36a"),
+                &"freeze": Color("78e2ff"),
+                &"ignite": Color("ff7b45"),
+                &"electrified": Color("91dcff"),
+                &"damage_taken": Color("ff496f"),
+                &"channel": Color("bd83ff"),
+                &"return": Color("d5f0b6"),
+            }
+            var cue_color := trigger_colors.get(trigger_type, Color("b9ecff")) as Color
             _spawn_streak(
                 parent,
                 world_position - Vector3(direction.z, 0.0, -direction.x) * 0.65 + Vector3.UP,
                 world_position + Vector3(direction.z, 0.0, -direction.x) * 0.65 + Vector3.UP,
-                Color("b9ecff"),
+                cue_color,
                 0.06,
                 0.17,
                 &"vfx_trigger"
             )
+            _spawn_ring(parent, world_position, cue_color, 0.85, 0.2, &"vfx_trigger")
 
 
-static func _spawn_emitter_cue(
+static func _spawn_core_cue(
         parent: Node,
-        emitter_type: StringName,
-        world_position: Vector3
-) -> void:
-    match emitter_type:
-        &"enemy":
-            _spawn_ring(parent, world_position, Color("ff5d63"), 1.05, 0.3, &"vfx_emitter")
-            _spawn_cross(parent, world_position, Color("ff5d63"), 0.8, &"vfx_emitter")
-        &"impact":
-            _spawn_cross(parent, world_position, Color("ffba61"), 1.15, &"vfx_emitter")
-            _spawn_motes(parent, world_position, Color("ffd08a"), 7, 0.95, 0.25, &"vfx_emitter", true)
-        &"mouse":
-            _spawn_ring(parent, world_position, Color("55efff"), 1.2, 0.28, &"vfx_emitter")
-            _spawn_ring(parent, world_position, Color("b8fbff"), 0.56, 0.2, &"vfx_emitter")
-        _:
-            _spawn_ring(parent, world_position, Color("69aaff"), 0.95, 0.24, &"vfx_emitter")
-
-
-static func _spawn_action_cue(
-        parent: Node,
-        action_type: StringName,
+        core_behavior: StringName,
         world_position: Vector3,
         direction: Vector3,
         color: Color
 ) -> void:
-    match action_type:
-        &"damage":
+    match core_behavior:
+        &"melee", &"dash":
             var side := Vector3(-direction.z, 0.0, direction.x)
-            _spawn_streak(parent, world_position - side + Vector3.UP, world_position + side + direction * 1.25 + Vector3.UP, color, 0.1, 0.2, &"vfx_action")
-            _spawn_streak(parent, world_position + side + Vector3.UP, world_position - side + direction * 1.25 + Vector3.UP, Color.WHITE, 0.065, 0.16, &"vfx_action")
+            _spawn_streak(parent, world_position - side + Vector3.UP, world_position + side + direction * 1.25 + Vector3.UP, color, 0.1, 0.2, &"vfx_core")
+            _spawn_streak(parent, world_position + side + Vector3.UP, world_position - side + direction * 1.25 + Vector3.UP, Color.WHITE, 0.065, 0.16, &"vfx_core")
         &"summon":
-            _spawn_orbit(parent, world_position + Vector3.UP * 0.65, color, 3, 1.1, 0.5, &"vfx_action")
-            _spawn_ring(parent, world_position, color, 1.45, 0.38, &"vfx_action")
+            _spawn_orbit(parent, world_position + Vector3.UP * 0.65, color, 3, 1.1, 0.5, &"vfx_core")
+            _spawn_ring(parent, world_position, color, 1.45, 0.38, &"vfx_core")
         _:
-            _spawn_motes(parent, world_position + direction * 0.45, color, 6, 0.65, 0.2, &"vfx_action", false)
+            _spawn_motes(parent, world_position + direction * 0.45, color, 6, 0.65, 0.2, &"vfx_core", false)
 
 
 static func _spawn_shape_cue(
@@ -494,40 +489,27 @@ static func _spawn_modifier_cue(
         color: Color
 ) -> void:
     match modifier_type:
-        &"split":
+        &"fork":
             for angle: float in [-22.0, 0.0, 22.0]:
                 var split_direction := direction.rotated(Vector3.UP, deg_to_rad(angle))
                 _spawn_streak(parent, world_position + Vector3.UP * 0.55, world_position + split_direction * 2.25 + Vector3.UP * 0.55, color, 0.035, 0.22, &"vfx_modifier")
         &"pierce":
             for distance: float in [0.75, 1.35, 1.95]:
                 _spawn_ring(parent, world_position + direction * distance + Vector3.UP * 0.45, Color("e7f3ff"), 0.48, 0.25, &"vfx_modifier")
-        &"bounce":
-            var side := Vector3(-direction.z, 0.0, direction.x)
-            var point_a := world_position + Vector3.UP * 0.55
-            var point_b := point_a + direction * 0.85 + side * 0.6
-            var point_c := point_a + direction * 1.7 - side * 0.55
-            _spawn_streak(parent, point_a, point_b, Color("fff29b"), 0.045, 0.28, &"vfx_modifier")
-            _spawn_streak(parent, point_b, point_c, Color("fff29b"), 0.045, 0.28, &"vfx_modifier")
-        &"accelerate":
-            for offset: float in [-0.28, 0.0, 0.28]:
-                var side := Vector3(-direction.z, 0.0, direction.x) * offset
-                _spawn_streak(parent, world_position + side - direction * 0.5 + Vector3.UP * 0.55, world_position + side + direction * 2.1 + Vector3.UP * 0.55, Color("fff0a8"), 0.035, 0.3, &"vfx_modifier")
         &"chain":
             var side := Vector3(-direction.z, 0.0, direction.x)
             var center := world_position + direction * 0.8 + Vector3.UP * 0.55
             _spawn_streak(parent, world_position + Vector3.UP * 0.55, center, color, 0.035, 0.25, &"vfx_modifier")
             _spawn_streak(parent, center, center + direction * 0.7 + side * 0.65, color, 0.035, 0.25, &"vfx_modifier")
             _spawn_streak(parent, center, center + direction * 0.7 - side * 0.65, color, 0.035, 0.25, &"vfx_modifier")
-        &"rapid_fire":
-            for distance: float in [0.65, 1.15, 1.65]:
-                _spawn_ring(parent, world_position + direction * distance + Vector3.UP * 0.55, Color("8de7ff"), 0.36, 0.18, &"vfx_modifier")
-        &"combo":
-            var combo_side := Vector3(-direction.z, 0.0, direction.x)
-            _spawn_streak(parent, world_position - combo_side + Vector3.UP, world_position + combo_side + direction * 1.1 + Vector3.UP, Color.WHITE, 0.07, 0.2, &"vfx_modifier")
-            _spawn_streak(parent, world_position + combo_side + Vector3.UP, world_position - combo_side + direction * 1.4 + Vector3.UP, color, 0.08, 0.24, &"vfx_modifier")
-        &"splash":
-            _spawn_ring(parent, world_position, color, 1.8, 0.3, &"vfx_modifier")
-            _spawn_radial_lines(parent, world_position, color, 8, 1.35, &"vfx_modifier")
+        &"return":
+            _spawn_ring(parent, world_position - direction * 0.5, Color("d5f0b6"), 0.62, 0.22, &"vfx_modifier")
+        &"homing":
+            _spawn_orbit(parent, world_position + direction * 0.5 + Vector3.UP * 0.4, color, 3, 0.46, 0.28, &"vfx_modifier")
+        &"giant", &"expanded":
+            _spawn_ring(parent, world_position, color, 1.55, 0.3, &"vfx_modifier")
+        &"compressed":
+            _spawn_ring(parent, world_position, Color.WHITE, 0.34, 0.16, &"vfx_modifier")
         _:
             _spawn_ring(parent, world_position, Color(0.65, 0.75, 0.85, 0.7), 0.52, 0.18, &"vfx_modifier")
 
@@ -539,18 +521,14 @@ static func _spawn_effect_cue(
         color: Color
 ) -> void:
     match effect_type:
-        &"fire":
+        &"ignite":
             _spawn_motes(parent, world_position, Color("ff7b45"), 10, 1.05, 0.36, &"vfx_effect", true)
         &"poison":
             _spawn_cloud(parent, world_position, Color("79d958"), 7, 1.0, &"vfx_effect")
-        &"ice":
+        &"freeze":
             _spawn_shards(parent, world_position, Color("8de7ff"), 8, 1.1, &"vfx_effect")
-        &"lifesteal":
-            _spawn_ring(parent, world_position, Color("ff6f9f"), 1.25, 0.34, &"vfx_effect")
-            _spawn_motes(parent, world_position, Color("ff91b8"), 7, 0.95, 0.38, &"vfx_effect", false)
-        &"explosion":
-            _spawn_radial_lines(parent, world_position, Color("ffc15a"), 10, 1.8, &"vfx_effect")
-            _spawn_ring(parent, world_position, Color("ff9f43"), 1.65, 0.3, &"vfx_effect")
+        &"electrified":
+            _spawn_radial_lines(parent, world_position, Color("91dcff"), 8, 1.1, &"vfx_effect")
         _:
             _spawn_motes(parent, world_position, color, 5, 0.65, 0.22, &"vfx_effect", false)
 
@@ -566,20 +544,10 @@ static func _spawn_modifier_hit(
         &"pierce":
             _spawn_ring(parent, target_position, Color.WHITE, 0.9, 0.2, &"vfx_modifier")
             _spawn_streak(parent, target_position - direction, target_position + direction, color, 0.055, 0.18, &"vfx_modifier")
-        &"bounce":
-            _spawn_cross(parent, target_position, Color("fff29b"), 0.72, &"vfx_modifier")
         &"chain":
             _spawn_ring(parent, target_position, Color("d9b8ff"), 0.78, 0.2, &"vfx_modifier")
-        &"accelerate":
-            _spawn_radial_lines(parent, target_position, Color("fff0a8"), 5, 0.8, &"vfx_modifier")
-        &"split":
+        &"fork":
             _spawn_radial_lines(parent, target_position, color, 3, 0.75, &"vfx_modifier")
-        &"rapid_fire":
-            _spawn_cross(parent, target_position, Color("8de7ff"), 0.62, &"vfx_modifier")
-        &"combo":
-            _spawn_cross(parent, target_position, Color.WHITE, 0.82, &"vfx_modifier")
-        &"splash":
-            _spawn_ring(parent, target_position, color, 1.75, 0.28, &"vfx_modifier")
         _:
             _spawn_ring(parent, target_position, color, 0.5, 0.15, &"vfx_modifier")
 
@@ -588,24 +556,19 @@ static func _spawn_effect_hit(
         parent: Node,
         effect_type: StringName,
         target_position: Vector3,
-        source_position: Vector3,
+        _source_position: Vector3,
         color: Color
 ) -> void:
     match effect_type:
-        &"fire":
+        &"ignite":
             _spawn_motes(parent, target_position, Color("ff6b36"), 12, 1.2, 0.42, &"vfx_effect", true)
         &"poison":
             _spawn_cloud(parent, target_position, Color("7be05a"), 9, 1.25, &"vfx_effect")
-        &"ice":
+        &"freeze":
             _spawn_shards(parent, target_position, Color("a6efff"), 10, 1.35, &"vfx_effect")
             _spawn_ring(parent, target_position, Color("75ddff"), 1.25, 0.3, &"vfx_effect")
-        &"lifesteal":
-            _spawn_streak(parent, target_position + Vector3.UP, source_position + Vector3.UP, Color("ff6f9f"), 0.085, 0.34, &"vfx_effect")
-            _spawn_motes(parent, target_position, Color("ff8bb2"), 8, 0.9, 0.36, &"vfx_effect", false)
-        &"explosion":
-            _spawn_radial_lines(parent, target_position, Color("ffd16f"), 14, 2.1, &"vfx_effect")
-            _spawn_ring(parent, target_position, Color("ff9d3d"), 2.15, 0.34, &"vfx_effect")
-            _spawn_motes(parent, target_position, Color("ff7d35"), 10, 1.6, 0.38, &"vfx_effect", true)
+        &"electrified":
+            _spawn_radial_lines(parent, target_position, Color("91dcff"), 9, 1.2, &"vfx_effect")
         _:
             _spawn_cross(parent, target_position, color, 0.62, &"vfx_effect")
 
@@ -726,7 +689,7 @@ static func spawn_chain_lightning(
         _add_lightning_segment(root, points[segment_index], points[segment_index + 1], core_material, 0.034)
 
     var direction := forward
-    var endpoint_frames := SKILL_VFX_ASSETS.get_cast_frames(&"thunder_orb")
+    var endpoint_frames := SKILL_VFX_ASSETS.get_cast_frames(&"chain_lightning")
     _spawn_animated_skill_sprite(
         parent, endpoint_frames, from_position, color.lightened(0.24),
         0.0038, 0.16, 0.5, 0.18, false, direction,

@@ -2,6 +2,8 @@ class_name ProjectileManager
 extends Node
 
 signal projectile_impact(projectile: SkillProjectile, target: Node3D)
+signal projectile_returned(projectile: SkillProjectile)
+signal projectile_remnant(projectile: SkillProjectile, world_position: Vector3)
 signal projectile_event(message: String, event_color: Color)
 
 const PROJECTILE_SCRIPT := preload("res://scripts/projectile.gd")
@@ -32,6 +34,8 @@ func request_projectile(
     if _pool.is_empty():
         projectile = PROJECTILE_SCRIPT.new()
         projectile.impact_requested.connect(_on_impact_requested)
+        projectile.return_completed.connect(_on_return_completed)
+        projectile.remnant_requested.connect(_on_remnant_requested)
         projectile.released.connect(_on_projectile_released)
         projectile.event_fired.connect(_on_projectile_event)
         parent.add_child(projectile)
@@ -74,6 +78,14 @@ func clear_active() -> void:
 
 func _on_impact_requested(projectile: SkillProjectile, target: Node3D) -> void:
     projectile_impact.emit(projectile, target)
+
+
+func _on_return_completed(projectile: SkillProjectile) -> void:
+    projectile_returned.emit(projectile)
+
+
+func _on_remnant_requested(projectile: SkillProjectile, world_position: Vector3) -> void:
+    projectile_remnant.emit(projectile, world_position)
 
 
 func _on_projectile_released(projectile: SkillProjectile) -> void:
