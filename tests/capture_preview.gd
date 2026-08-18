@@ -43,6 +43,9 @@ func _capture() -> void:
         push_error("Could not save wide preview: %s" % error_string(save_error))
         quit(1)
         return
+    main_scene.queue_free()
+    await process_frame
+    await process_frame
     print("PASS: previews captured at %s and %s" % [OUTPUT_PATH, WIDE_OUTPUT_PATH])
     quit(0)
 

@@ -51,24 +51,33 @@ func _run_test() -> void:
         var editor_rect := editor.get_global_rect()
         if not editor.visible or editor_rect.position.x < 0.0 or editor_rect.end.x > float(viewport_size.x):
             failures.append("Component picker clipped at %s" % viewport_size)
-        if (hud.get("_component_grid") as GridContainer).columns != 5:
-            failures.append("Component picker did not use responsive columns at %s" % viewport_size)
+        if editor_rect.size.y > 240.0:
+            failures.append("Non-Trigger picker was not compact at %s" % viewport_size)
         hud.call("_close_editor")
 
     hud.call("_open_editor", 0)
-    var category_tabs := hud.get("_category_tabs") as HBoxContainer
-    if category_tabs.get_child_count() != 1:
+    var category_selector := hud.get("_category_selector") as OptionButton
+    if category_selector.item_count != 1 or category_selector.get_item_metadata(0) != &"Core":
         failures.append("Slot 1 picker was not locked to the Core category")
-    var component_buttons := hud.get("_component_buttons") as Array
-    if component_buttons.size() != 20:
-        failures.append("Slot 1 picker did not render all 20 Core cards")
+    var component_selector := hud.get("_component_selector") as OptionButton
+    if component_selector.item_count != 20:
+        failures.append("Slot 1 Component dropdown did not list all 20 Cores")
 
-    hud.call("_on_component_card_pressed", &"core_frost_lance")
+    hud.call("_select_metadata", component_selector, &"core_frost_lance")
+    hud.call("_on_apply_selection")
     await process_frame
     if hud.get_build().get_slot(0).component_id != &"core_frost_lance":
         failures.append("Clicking a Component card did not fill Slot 1")
     if int(hud.get("_selected_slot_index")) != 1:
         failures.append("Filling an empty slot did not advance to the next slot")
+    category_selector = hud.get("_category_selector") as OptionButton
+    if category_selector.item_count != SkillCatalog.CATEGORY_ORDER.size():
+        failures.append("Slot 2 Category dropdown did not expose all document categories")
+    else:
+        for category_index: int in SkillCatalog.CATEGORY_ORDER.size():
+            if category_selector.get_item_metadata(category_index) != SkillCatalog.CATEGORY_ORDER[category_index]:
+                failures.append("Category dropdown order diverged from the V1 document")
+                break
     if player.current_build == null or not player.current_build.is_valid():
         failures.append("First valid Core did not become the active Runtime build")
     if (buttons[1] as Button).disabled:
@@ -141,7 +150,7 @@ func _finish(main_scene: Node, failures: PackedStringArray) -> void:
     await process_frame
     await process_frame
     if failures.is_empty():
-        print("PASS: empty six-slot HUD, card picker, responsive layout, preset, and Trigger controls")
+        print("PASS: empty six-slot HUD, compact classified dropdowns, preset, and Trigger controls")
         quit(0)
         return
     for failure: String in failures:

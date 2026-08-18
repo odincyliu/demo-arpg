@@ -17,13 +17,13 @@ var _runtime_build: SixLinkBuild
 var _slot_buttons: Array[Button] = []
 var _selected_slot_index: int = -1
 var _active_category: StringName = &""
-var _component_buttons: Array[Button] = []
+var _refreshing_selectors: bool = false
 
 var _builder_panel: PanelContainer
 var _editor_panel: PanelContainer
-var _category_tabs: HBoxContainer
-var _component_scroll: ScrollContainer
-var _component_grid: GridContainer
+var _category_selector: OptionButton
+var _component_selector: OptionButton
+var _apply_selection_button: Button
 var _trigger_controls: VBoxContainer
 var _damage_threshold_row: HBoxContainer
 var _channel_interval_row: HBoxContainer
@@ -294,7 +294,7 @@ func _build_editor(root: Control) -> void:
     _editor_panel.anchor_left = 0.5
     _editor_panel.anchor_right = 0.5
     _editor_panel.offset_top = 176.0
-    _editor_panel.offset_bottom = 700.0
+    _editor_panel.offset_bottom = 365.0
     _editor_panel.add_theme_stylebox_override("panel", _panel_style(Color("101f2b"), 0.985, Color("3c718d")))
     _editor_panel.visible = false
     _editor_panel.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -324,21 +324,24 @@ func _build_editor(root: Control) -> void:
     close_button.pressed.connect(_close_editor)
     header.add_child(close_button)
 
-    _category_tabs = HBoxContainer.new()
-    _category_tabs.add_theme_constant_override("separation", 5)
-    column.add_child(_category_tabs)
-
-    _component_scroll = ScrollContainer.new()
-    _component_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-    _component_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-    _component_scroll.custom_minimum_size.y = 250.0
-    column.add_child(_component_scroll)
-    _component_grid = GridContainer.new()
-    _component_grid.columns = 5
-    _component_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    _component_grid.add_theme_constant_override("h_separation", 8)
-    _component_grid.add_theme_constant_override("v_separation", 8)
-    _component_scroll.add_child(_component_grid)
+    var selector_row := HBoxContainer.new()
+    selector_row.add_theme_constant_override("separation", 8)
+    column.add_child(selector_row)
+    selector_row.add_child(_field_label("CATEGORY", 74.0))
+    _category_selector = OptionButton.new()
+    _category_selector.custom_minimum_size.x = 170.0
+    _category_selector.item_selected.connect(_on_category_selected)
+    selector_row.add_child(_category_selector)
+    selector_row.add_child(_field_label("COMPONENT", 88.0))
+    _component_selector = OptionButton.new()
+    _component_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    _component_selector.item_selected.connect(_on_component_selected)
+    selector_row.add_child(_component_selector)
+    _apply_selection_button = Button.new()
+    _apply_selection_button.text = "APPLY TO SLOT"
+    _apply_selection_button.custom_minimum_size.x = 130.0
+    _apply_selection_button.pressed.connect(_on_apply_selection)
+    selector_row.add_child(_apply_selection_button)
 
     _trigger_controls = VBoxContainer.new()
     _trigger_controls.add_theme_constant_override("separation", 5)
@@ -362,11 +365,6 @@ func _build_editor(root: Control) -> void:
         _status_selector.add_item(String(status_name).capitalize())
         _status_selector.set_item_metadata(_status_selector.item_count - 1, status_name)
     common_row.add_child(_status_selector)
-    var save_trigger_button := Button.new()
-    save_trigger_button.text = "SAVE SETTINGS"
-    save_trigger_button.pressed.connect(_on_save_trigger_settings)
-    common_row.add_child(save_trigger_button)
-
     _damage_threshold_row = HBoxContainer.new()
     _trigger_controls.add_child(_damage_threshold_row)
     _damage_threshold = _add_spin(_damage_threshold_row, "Accumulated damage % max HP", 1.0, 100.0, 1.0, 10.0)
@@ -424,11 +422,14 @@ func _open_editor(slot_index: int) -> void:
         "CHOOSE ROOT CORE" if slot_index == 0 else "CHOOSE COMPONENT",
     ]
     _active_category = _preferred_category(slot_index, current)
+    _refreshing_selectors = true
     _populate_categories()
     _populate_components(_active_category)
+    if current != null:
+        _select_metadata(_component_selector, current.component_id)
     _load_trigger_config(slot.trigger_config)
-    _refresh_trigger_controls()
-    _refresh_editor_message()
+    _refreshing_selectors = false
+    _refresh_selection_state()
     _refresh_slots()
 
 
@@ -448,7 +449,7 @@ func _preferred_category(slot_index: int, current: SkillComponent) -> StringName
 
 
 func _populate_categories() -> void:
-    _clear_container(_category_tabs)
+    _category_selector.clear()
     var categories: Array[StringName] = []
     if _selected_slot_index == 0 or _previous_slot_is_trigger(_selected_slot_index):
         categories.append(&"Core")
@@ -456,78 +457,56 @@ func _populate_categories() -> void:
         categories.assign(SkillCatalog.CATEGORY_ORDER)
     if _active_category not in categories:
         _active_category = categories[0]
-    var group := ButtonGroup.new()
     for category: StringName in categories:
-        var button := Button.new()
-        button.text = SkillCatalog.get_category_label(category).to_upper()
-        button.toggle_mode = true
-        button.button_group = group
-        button.button_pressed = category == _active_category
-        button.set_meta("category", category)
-        button.add_theme_font_size_override("font_size", 11)
-        button.pressed.connect(_on_category_pressed.bind(category))
-        _category_tabs.add_child(button)
+        _category_selector.add_item(SkillCatalog.get_category_label(category))
+        _category_selector.set_item_metadata(_category_selector.item_count - 1, category)
+    _select_metadata(_category_selector, _active_category)
 
 
 func _populate_components(category: StringName) -> void:
     _active_category = category
-    _component_buttons.clear()
-    _clear_container(_component_grid)
+    _component_selector.clear()
+    var first_selectable := -1
     for candidate: Dictionary in get_available_candidates(_selected_slot_index, category, true):
         var component := SkillCatalog.get_component(StringName(candidate["component_id"]))
         if component == null:
             continue
         var valid := bool(candidate["valid"])
         var pending := bool(candidate["pending"])
-        var compatible := valid or pending
-        var button := Button.new()
-        button.custom_minimum_size = Vector2(198.0, 68.0)
-        button.text = "%s%s\n%s" % [
-            "" if valid else ("→ " if pending else "⚠ "),
-            component.display_name,
-            "%s · NEXT CORE" % component.category if pending else component.category,
-        ]
-        button.tooltip_text = component.summary if valid else "%s\n\n%s" % [
+        var selectable := valid or pending
+        var prefix := "" if valid else ("→ " if pending else "⚠ ")
+        var suffix := "  ·  next slot must be Core" if pending else ""
+        _component_selector.add_item(prefix + component.display_name + suffix)
+        var item_index := _component_selector.item_count - 1
+        _component_selector.set_item_metadata(item_index, component.component_id)
+        _component_selector.set_item_disabled(item_index, not selectable)
+        _component_selector.set_item_tooltip(item_index, component.summary if valid else "%s\n\n%s" % [
             component.summary,
             "Select this Trigger, then choose its Core in the next slot." if pending else candidate["reason"],
-        ]
-        button.add_theme_font_size_override("font_size", 11)
-        button.add_theme_stylebox_override(
-            "normal",
-            _button_style(
-                Color("173545") if valid else (Color("43351f") if pending else Color("2a3036")),
-                _category_color(component.category) if compatible else Color("626a70"),
-                1
-            )
-        )
-        button.add_theme_stylebox_override(
-            "hover",
-            _button_style(
-                Color("22516a") if valid else (Color("5a482b") if pending else Color("3a3f44")),
-                _category_color(component.category).lightened(0.18) if compatible else INVALID_COLOR,
-                2
-            )
-        )
-        button.add_theme_color_override("font_color", Color("e5f7ff") if compatible else Color("939da4"))
-        button.pressed.connect(_on_component_card_pressed.bind(component.component_id))
-        _component_grid.add_child(button)
-        _component_buttons.append(button)
+        ])
+        if selectable and first_selectable < 0:
+            first_selectable = item_index
+    if first_selectable >= 0:
+        _component_selector.select(first_selectable)
+    elif _component_selector.item_count > 0:
+        _component_selector.select(0)
 
 
-func _on_component_card_pressed(component_id: StringName) -> void:
-    if _selected_slot_index < 0:
+func _selected_component_id() -> StringName:
+    if _component_selector.item_count == 0 or _component_selector.selected < 0:
+        return &""
+    return StringName(_component_selector.get_item_metadata(_component_selector.selected))
+
+
+func _on_apply_selection() -> void:
+    var component_id := _selected_component_id()
+    if _selected_slot_index < 0 or component_id == &"":
         return
     var edited_slot := _selected_slot_index
     var previous_slot := _build.get_slot(edited_slot)
     var was_empty := previous_slot == null or previous_slot.is_empty()
     var component := SkillCatalog.get_component(component_id)
-    var config: TriggerConfig
-    if component != null and component.is_trigger():
-        config = previous_slot.trigger_config.normalized_copy() if (
-            previous_slot != null
-            and previous_slot.component_id == component_id
-            and previous_slot.trigger_config != null
-        ) else TriggerConfig.new()
+    var config := _make_trigger_config() if component != null and component.is_trigger() else null
     edit_slot(edited_slot, component_id, config)
     if was_empty and edited_slot < SixLinkBuild.MAX_SLOTS - 1:
         _open_editor(edited_slot + 1)
@@ -535,27 +514,38 @@ func _on_component_card_pressed(component_id: StringName) -> void:
     _open_editor(edited_slot)
 
 
-func _refresh_trigger_controls() -> void:
+func _refresh_selection_state() -> void:
     if _selected_slot_index < 0:
         _trigger_controls.visible = false
         return
-    var slot := _build.get_slot(_selected_slot_index)
-    var component := SkillCatalog.get_component(slot.component_id) if slot != null else null
+    var component_id := _selected_component_id()
+    var component := SkillCatalog.get_component(component_id)
     var is_trigger := component != null and component.is_trigger()
     _trigger_controls.visible = is_trigger
-    _damage_threshold_row.visible = is_trigger and component.component_id == &"trigger_damage_taken"
-    _channel_interval_row.visible = is_trigger and component.component_id == &"trigger_channel"
-
-
-func _refresh_editor_message() -> void:
-    if _build.is_valid():
-        _draft_label.text = "VALID BUILD  ·  Combat adopted this draft automatically."
-        _draft_label.add_theme_color_override("font_color", VALID_COLOR)
+    _editor_panel.offset_bottom = 475.0 if is_trigger else 365.0
+    _damage_threshold_row.visible = is_trigger and component_id == &"trigger_damage_taken"
+    _channel_interval_row.visible = is_trigger and component_id == &"trigger_channel"
+    if component == null:
+        _apply_selection_button.disabled = true
+        _draft_label.text = "Choose a Component."
+        _draft_label.add_theme_color_override("font_color", INVALID_COLOR)
         return
-    _draft_label.text = "DRAFT INCOMPLETE  ·  %s" % (
-        _build.validation_errors[0] if not _build.validation_errors.is_empty() else "Choose a Component."
-    )
-    _draft_label.add_theme_color_override("font_color", INVALID_COLOR)
+    var config := _make_trigger_config() if is_trigger else null
+    var state := SkillCompiler.get_candidate_state(_build, _selected_slot_index, component_id, config)
+    var pending := _is_forward_pending_trigger(component, _selected_slot_index, state)
+    _apply_selection_button.disabled = not state.valid and not pending
+    if state.valid:
+        _draft_label.text = "%s  ·  Compatible with this slot." % component.summary
+        _draft_label.add_theme_color_override("font_color", VALID_COLOR)
+    elif pending:
+        _draft_label.text = "%s  ·  Apply it, then choose a Core in Slot %d." % [
+            component.summary,
+            _selected_slot_index + 2,
+        ]
+        _draft_label.add_theme_color_override("font_color", Color("ffc56f"))
+    else:
+        _draft_label.text = "%s  ·  %s" % [component.summary, state.reason]
+        _draft_label.add_theme_color_override("font_color", INVALID_COLOR)
 
 
 func _load_trigger_config(config: TriggerConfig) -> void:
@@ -579,17 +569,6 @@ func _make_trigger_config() -> TriggerConfig:
     config.channel_interval = _channel_interval.value
     config.required_target_status = StringName(_status_selector.get_item_metadata(_status_selector.selected))
     return config
-
-
-func _on_save_trigger_settings() -> void:
-    if _selected_slot_index < 0:
-        return
-    var slot := _build.get_slot(_selected_slot_index)
-    var component := SkillCatalog.get_component(slot.component_id) if slot != null else null
-    if component == null or not component.is_trigger():
-        return
-    edit_slot(_selected_slot_index, component.component_id, _make_trigger_config())
-    _refresh_editor_message()
 
 
 func _refresh_slots() -> void:
@@ -726,8 +705,35 @@ func _on_clear_pressed() -> void:
     _open_editor(slot_index)
 
 
-func _on_category_pressed(category: StringName) -> void:
-    _populate_components(category)
+func _on_category_selected(index: int) -> void:
+    if _refreshing_selectors or index < 0:
+        return
+    _active_category = StringName(_category_selector.get_item_metadata(index))
+    _refreshing_selectors = true
+    _populate_components(_active_category)
+    _refreshing_selectors = false
+    _load_config_for_selected_component()
+    _refresh_selection_state()
+
+
+func _on_component_selected(_index: int) -> void:
+    if _refreshing_selectors:
+        return
+    _load_config_for_selected_component()
+    _refresh_selection_state()
+
+
+func _load_config_for_selected_component() -> void:
+    var selected_id := _selected_component_id()
+    var slot := _build.get_slot(_selected_slot_index) if _selected_slot_index >= 0 else null
+    if (
+        slot != null
+        and slot.component_id == selected_id
+        and slot.trigger_config != null
+    ):
+        _load_trigger_config(slot.trigger_config)
+        return
+    _load_trigger_config(null)
 
 
 func _select_metadata(selector: OptionButton, metadata: Variant) -> void:
@@ -756,13 +762,6 @@ func _apply_responsive_layout() -> void:
     var editor_width := minf(maxf(viewport_width - 80.0, 900.0), 1220.0)
     _editor_panel.offset_left = -editor_width * 0.5
     _editor_panel.offset_right = editor_width * 0.5
-    _component_grid.columns = 4 if viewport_width < 1100.0 else 5
-
-
-func _clear_container(container: Container) -> void:
-    for child: Node in container.get_children():
-        container.remove_child(child)
-        child.queue_free()
 
 
 func _set_margins(container: MarginContainer, margin: int) -> void:
