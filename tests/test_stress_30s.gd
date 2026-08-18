@@ -20,7 +20,7 @@ func _run_test() -> void:
     var player := get_first_node_in_group("player") as PlayerController
     TEST_UTILS.place_player(player, Vector3(0.0, 0.0, 7.0))
     var result := TEST_UTILS.compile([
-        &"core_blade_burst", &"pattern_phantom", &"pattern_repeat",
+        &"core_arrow_shot", &"pattern_phantom", &"pattern_repeat",
         &"pattern_multishot", &"shape_orbit", &"pattern_remnant",
     ])
     if not result.valid:

@@ -3,11 +3,10 @@ extends SceneTree
 const TEST_UTILS := preload("res://tests/six_link_test_utils.gd")
 
 const CORE_IDS: Array[StringName] = [
-    &"core_slash", &"core_rapid_slash", &"core_whirlblade", &"core_earthbreaker",
-    &"core_dash_strike", &"core_shockwave", &"core_ground_burst", &"core_explosion",
-    &"core_blade_burst", &"core_arrow_shot", &"core_returning_blade", &"core_frost_lance",
-    &"core_flame_orb", &"core_frost_nova", &"core_chain_lightning", &"core_meteor",
-    &"core_void_beam", &"core_blood_burst", &"core_void_rift", &"core_summon",
+    &"core_slash", &"core_whirlblade", &"core_dash_strike", &"core_shockwave",
+    &"core_ground_burst", &"core_arrow_shot", &"core_frost_lance", &"core_flame_orb",
+    &"core_frost_nova", &"core_chain_lightning", &"core_meteor", &"core_void_beam",
+    &"core_void_rift", &"core_summon",
 ]
 
 
@@ -36,6 +35,7 @@ func _run_test() -> void:
         messages.append(message)
     )
     await _verify_all_cores(player, dummies, failures)
+    await _verify_wave_and_splash(player, dummies, failures)
     await _verify_default_hold_freeze(player, dummies, messages, failures)
     await _verify_hold_reaim(player, dummies, failures)
     await _verify_crit_trigger(player, dummies, messages, failures)
@@ -72,7 +72,7 @@ func _verify_all_cores(
             Input.action_release("cast_skill")
         else:
             executor.request_manual_cast(target.global_position, Vector3(0.0, 0.0, -1.0))
-            var wait_frames := 55 if definition.core_behavior in [&"projectile", &"meteor", &"summon"] else 10
+            var wait_frames := 55 if definition.core_behavior in [&"projectile", &"wave", &"meteor", &"summon"] else 10
             for _frame: int in wait_frames:
                 await physics_frame
         var produced_runtime_result := target.health < starting_health
@@ -82,6 +82,48 @@ func _verify_all_cores(
             produced_runtime_result = player.global_position.distance_to(Vector3.ZERO) > 1.0 and target.health < starting_health
         if not produced_runtime_result:
             failures.append("Core %s produced no observable Runtime result" % core_id)
+
+
+func _verify_wave_and_splash(
+        player: PlayerController,
+        dummies: Array[Node],
+        failures: PackedStringArray
+) -> void:
+    TEST_UTILS.place_player(player)
+    TEST_UTILS.isolate_target(dummies, Vector3(0.0, 0.0, -2.5))
+    var first := dummies[0] as TrainingDummy
+    var second := dummies[1] as TrainingDummy
+    second.reset_dummy()
+    second.global_position = Vector3(0.0, 0.0, -5.0)
+    var wave := TEST_UTILS.compile([&"core_shockwave"])
+    player.set_skill_build(wave.build)
+    wave.build.get_root_core().critical_chance = 0.0
+    player.get_skill_executor().request_manual_cast(second.global_position, Vector3(0.0, 0.0, -1.0))
+    for _frame: int in 45:
+        await physics_frame
+    if first.health >= first.max_health or second.health >= second.max_health:
+        failures.append("Shockwave did not damage each target along its path once")
+    var first_loss := first.max_health - first.health
+    if first_loss > wave.build.get_root_core().damage * 1.1:
+        failures.append("Shockwave damaged the same path target more than once")
+
+    TEST_UTILS.place_player(player)
+    TEST_UTILS.isolate_target(dummies, Vector3(0.0, 0.0, -3.0))
+    first = dummies[0] as TrainingDummy
+    second = dummies[1] as TrainingDummy
+    second.reset_dummy()
+    second.global_position = Vector3(1.25, 0.0, -3.0)
+    var orb := TEST_UTILS.compile([&"core_flame_orb"])
+    player.set_skill_build(orb.build)
+    orb.build.get_root_core().critical_chance = 0.0
+    player.get_skill_executor().request_manual_cast(first.global_position, Vector3(0.0, 0.0, -1.0))
+    for _frame: int in 40:
+        await physics_frame
+    var direct_loss := first.max_health - first.health
+    if second.health >= second.max_health:
+        failures.append("Flame Orb impact_radius did not damage a nearby splash target")
+    if absf(direct_loss - orb.build.get_root_core().damage) > 0.1:
+        failures.append("Flame Orb direct target also received duplicate splash damage")
 
 
 func _verify_default_hold_freeze(
@@ -158,8 +200,8 @@ func _verify_crit_trigger(
     var config := TriggerConfig.new()
     config.internal_cooldown = 0.0
     var result := TEST_UTILS.compile([
-        &"core_rapid_slash", &"trigger_crit", &"core_shockwave",
-    ], {1: config})
+        &"core_slash", &"pattern_repeat", &"trigger_crit", &"core_shockwave",
+    ], {2: config})
     player.set_skill_build(result.build)
     result.build.get_root_core().critical_chance = 1.0
     player.get_skill_executor().request_manual_cast(target.global_position, Vector3(0.0, 0.0, -1.0))
@@ -167,7 +209,7 @@ func _verify_crit_trigger(
         await physics_frame
     var trigger_count := TEST_UTILS.message_count(messages, "On Crit -> Shockwave")
     if trigger_count < 1 or trigger_count > 3:
-        failures.append("Rapid Slash On-Crit did not execute within its bounded three-hit chain")
+        failures.append("Slash + Repeat On-Crit did not execute within its bounded three-hit chain")
     if player.get_skill_executor().get_queue_size() != 0:
         failures.append("Generation-1 Shockwave recursively generated Trigger events")
 
@@ -182,14 +224,14 @@ func _verify_return_trigger(
     TEST_UTILS.place_player(player)
     var target := TEST_UTILS.isolate_target(dummies, Vector3(0.0, 0.0, -3.0))
     var result := TEST_UTILS.compile([
-        &"core_returning_blade", &"trajectory_return", &"trigger_return", &"core_explosion",
+        &"core_arrow_shot", &"trajectory_return", &"trigger_return", &"core_ground_burst",
     ])
     player.set_skill_build(result.build)
     player.get_skill_executor().request_manual_cast(target.global_position, Vector3(0.0, 0.0, -1.0))
     for _frame: int in 100:
         await physics_frame
-    if TEST_UTILS.message_count(messages, "On Return -> Explosion") != 1:
-        failures.append("Returning Blade did not produce one On Return event at the owner")
+    if TEST_UTILS.message_count(messages, "On Return -> Ground Burst") != 1:
+        failures.append("Arrow Shot + Return did not produce one On Return event at the owner")
 
 
 func _verify_channel_trigger(
@@ -289,7 +331,7 @@ func _finish(main_scene: Node, failures: PackedStringArray) -> void:
     await process_frame
     await process_frame
     if failures.is_empty():
-        print("PASS: all 20 Cores, Hold/Freeze, Crit, Return, Channel, Remnant, Trajectory, and Summon")
+        print("PASS: all 14 Cores, wave, splash, Hold/Freeze, Crit, Return, Channel, Remnant, Trajectory, and Summon")
         quit(0)
         return
     for failure: String in failures:

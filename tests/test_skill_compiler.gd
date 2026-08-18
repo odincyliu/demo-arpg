@@ -13,9 +13,10 @@ func _run_tests() -> void:
     _test_nearest_core_binding(failures)
     _test_fixed_pipeline_order(failures)
     _test_compatibility(failures)
+    _test_composed_core_roles(failures)
     _test_preview_contract(failures)
     if failures.is_empty():
-        print("PASS: modular six-link compiler, 55-component catalog, grammar, and previews")
+        print("PASS: modular six-link compiler, 49-component catalog, grammar, and previews")
         quit(0)
         return
     for failure: String in failures:
@@ -25,10 +26,10 @@ func _run_tests() -> void:
 
 func _test_catalog(failures: PackedStringArray) -> void:
     var catalog := SkillCatalog.get_catalog()
-    if catalog.size() != 55:
-        failures.append("Expected 55 V1 Components, got %d" % catalog.size())
+    if catalog.size() != 49:
+        failures.append("Expected 49 V1 Components, got %d" % catalog.size())
     var expected_counts := {
-        &"Core": 20, &"Trigger": 10, &"Trajectory": 5, &"Shape": 4,
+        &"Core": 14, &"Trigger": 10, &"Trajectory": 5, &"Shape": 4,
         &"Pattern": 5, &"Effect": 8, &"Transform": 3,
     }
     for category: StringName in expected_counts:
@@ -61,11 +62,11 @@ func _test_default_build(failures: PackedStringArray) -> void:
 
 func _test_grammar(failures: PackedStringArray) -> void:
     _expect(failures, _build([&"core_arrow_shot"]), true, "single Core")
-    _expect(failures, _build([&"core_arrow_shot", &"trajectory_pierce", &"trigger_hit", &"core_explosion", &"transform_expanded"]), true, "trigger chain")
-    _expect(failures, _build([&"core_arrow_shot", &"core_explosion"]), false, "Core-Core")
+    _expect(failures, _build([&"core_arrow_shot", &"trajectory_pierce", &"trigger_hit", &"core_ground_burst", &"transform_expanded"]), true, "trigger chain")
+    _expect(failures, _build([&"core_arrow_shot", &"core_ground_burst"]), false, "Core-Core")
     _expect(failures, _build([&"core_arrow_shot", &"trigger_hit"]), false, "missing Trigger target")
-    _expect(failures, _build([&"core_arrow_shot", &"trigger_hit", &"transform_giant", &"core_explosion"]), false, "Component between Trigger and Core")
-    _expect(failures, _build([&"core_arrow_shot", &"trigger_hit", &"core_explosion", &"trigger_kill", &"core_ground_burst"]), false, "second Trigger")
+    _expect(failures, _build([&"core_arrow_shot", &"trigger_hit", &"transform_giant", &"core_ground_burst"]), false, "Component between Trigger and Core")
+    _expect(failures, _build([&"core_arrow_shot", &"trigger_hit", &"core_ground_burst", &"trigger_kill", &"core_meteor"]), false, "second Trigger")
     _expect(failures, _build([&"core_arrow_shot", &"shape_cone", &"shape_line"]), false, "multiple Shape")
     _expect(failures, _build([&"core_arrow_shot", &"trajectory_pierce", &"trajectory_pierce"]), false, "duplicate Component")
     var gap := _build([&"core_arrow_shot"])
@@ -76,7 +77,7 @@ func _test_grammar(failures: PackedStringArray) -> void:
 func _test_nearest_core_binding(failures: PackedStringArray) -> void:
     var result := SkillCompiler.compile_build(_build([
         &"core_arrow_shot", &"transform_expanded", &"trigger_hit",
-        &"core_explosion", &"effect_stun", &"transform_giant",
+        &"core_ground_burst", &"effect_stun", &"transform_giant",
     ]))
     if not result.valid:
         failures.append("Nearest-Core build failed: %s" % "; ".join(result.errors))
@@ -110,10 +111,19 @@ func _test_fixed_pipeline_order(failures: PackedStringArray) -> void:
 
 func _test_compatibility(failures: PackedStringArray) -> void:
     _expect(failures, _build([&"core_slash", &"trajectory_pierce"]), false, "Pierce melee")
+    _expect(failures, _build([&"core_shockwave", &"trajectory_pierce"]), false, "Pierce wave")
     _expect(failures, _build([&"core_flame_orb", &"effect_freeze"]), false, "Freeze fire")
-    _expect(failures, _build([&"core_arrow_shot", &"trigger_return", &"core_explosion"]), false, "On Return without Return")
-    _expect(failures, _build([&"core_arrow_shot", &"trajectory_return", &"trigger_return", &"core_explosion"]), true, "On Return with Return")
+    _expect(failures, _build([&"core_arrow_shot", &"trigger_return", &"core_ground_burst"]), false, "On Return without Return")
+    _expect(failures, _build([&"core_arrow_shot", &"trajectory_return", &"trigger_return", &"core_ground_burst"]), true, "On Return with Return")
     _expect(failures, _build([&"core_void_beam", &"trigger_channel", &"core_meteor"]), true, "Channel Trigger")
+
+
+func _test_composed_core_roles(failures: PackedStringArray) -> void:
+    _expect(failures, _build([&"core_slash", &"pattern_repeat"]), true, "repeated Slash composition")
+    _expect(failures, _build([&"core_slash", &"transform_giant", &"transform_expanded"]), true, "heavy Slash composition")
+    _expect(failures, _build([&"core_arrow_shot", &"shape_nova", &"pattern_multishot"]), true, "radial Arrow composition")
+    _expect(failures, _build([&"core_arrow_shot", &"transform_giant", &"trajectory_return"]), true, "returning Arrow composition")
+    _expect(failures, _build([&"core_ground_burst", &"effect_bleed"]), true, "bleeding Ground Burst composition")
 
 
 func _test_preview_contract(failures: PackedStringArray) -> void:
@@ -136,9 +146,9 @@ func _representative_build(component: SkillComponent) -> SixLinkBuild:
             &"trigger_channel":
                 return _build([&"core_void_beam", component.component_id, &"core_meteor"])
             &"trigger_return":
-                return _build([&"core_returning_blade", &"trajectory_return", component.component_id, &"core_explosion"])
+                return _build([&"core_arrow_shot", &"trajectory_return", component.component_id, &"core_ground_burst"])
             _:
-                return _build([&"core_rapid_slash", component.component_id, &"core_explosion"])
+                return _build([&"core_slash", component.component_id, &"core_ground_burst"])
     var host := &"core_arrow_shot"
     match component.component_id:
         &"shape_nova":

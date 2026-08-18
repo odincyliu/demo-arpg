@@ -1,6 +1,9 @@
 class_name SkillMinion
 extends Node3D
 
+const SHADOW_STYLE := preload("res://scripts/shadow_vfx_style.gd")
+const COMBAT_VFX := preload("res://scripts/combat_vfx.gd")
+
 signal attack_requested(minion: SkillMinion, target: Node3D, definition: SkillDefinition, context: Dictionary)
 signal released(minion: SkillMinion)
 
@@ -42,6 +45,7 @@ func deactivate() -> void:
     if not _active:
         return
     _active = false
+    COMBAT_VFX.spawn_minion_dissolve(get_tree().current_scene, global_position)
     visible = false
     set_physics_process(false)
     remove_from_group("skill_minion")
@@ -90,15 +94,20 @@ func _build_visual() -> void:
     mesh.radius = 0.28
     mesh.height = 0.56
     core.mesh = mesh
-    var material := StandardMaterial3D.new()
-    material.albedo_color = Color("ffd16c")
-    material.emission_enabled = true
-    material.emission = Color("ffd16c")
-    material.emission_energy_multiplier = 2.4
-    core.material_override = material
+    core.material_override = SHADOW_STYLE.mesh_material(&"body", 0.98, 0.035, 0.82)
     add_child(core)
+    var halo := MeshInstance3D.new()
+    var halo_mesh := TorusMesh.new()
+    halo_mesh.inner_radius = 0.38
+    halo_mesh.outer_radius = 0.48
+    halo_mesh.rings = 10
+    halo_mesh.ring_segments = 20
+    halo.mesh = halo_mesh
+    halo.material_override = SHADOW_STYLE.standard_material(&"rim", 0.7, 0.65)
+    halo.rotation.x = PI * 0.5
+    add_child(halo)
     var light := OmniLight3D.new()
-    light.light_color = Color("ffd16c")
-    light.light_energy = 1.2
-    light.omni_range = 2.8
+    light.light_color = SHADOW_STYLE.RIM
+    light.light_energy = 0.45
+    light.omni_range = 2.2
     add_child(light)

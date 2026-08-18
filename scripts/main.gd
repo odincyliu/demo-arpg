@@ -167,7 +167,7 @@ func _on_combat_event(message: String, event_color: Color) -> void:
     elif message.begins_with("Cast"):
         _combat_audio.play_cast()
         _camera_shake = maxf(_camera_shake, 0.055)
-    elif message.contains("Explosion"):
+    elif message.contains("Ground Burst") or message.contains("Flame Orb") or message.contains("Meteor"):
         _combat_audio.play_hit(false, true)
         _camera_shake = maxf(_camera_shake, 0.3)
         _request_hit_stop(0.035, 0.16)

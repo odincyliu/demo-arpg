@@ -3,6 +3,9 @@
 本目錄只收錄實際用於遊戲的精選檔案。所有下列素材均由來源頁標示為
 CC0 1.0；雖然不強制署名，仍保留作者、原始網址與下載檔雜湊，方便日後稽核。
 
+原始像素內容維持不變。遊戲執行時由 `shadow_sprite.gdshader` 依亮度重映為
+近黑本體、灰色細節與灰白輪廓；這項 Runtime 灰階處理不會覆寫來源圖檔。
+
 存取日期：2026-08-12
 
 ## Cethiel — Fireball Effect
@@ -52,7 +55,7 @@ CC0 1.0；雖然不強制署名，仍保留作者、原始網址與下載檔雜�
 - SHA-256：`B631D4B07F7002549FDCF155F01141AD482F79F3440E4E301EED49CE5F1D8958`
 - 專案檔案：`cc0/kenney_particle_pack/` 內的光圈、魔法陣、火焰、閃電、
   刀光、星芒與閃光遮罩。
-- 處理：只挑選與重新命名；遊戲執行時以 `modulate` 上色。
+- 處理：只挑選與重新命名；遊戲執行時由共用 Sprite Shader 進行灰階亮度重映。
 - 原始授權文字：`cc0/kenney_particle_pack/LICENSE.txt`
 
 CC0 1.0 全文：https://creativecommons.org/publicdomain/zero/1.0/

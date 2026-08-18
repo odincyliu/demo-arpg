@@ -60,8 +60,8 @@ func _run_test() -> void:
     if category_selector.item_count != 1 or category_selector.get_item_metadata(0) != &"Core":
         failures.append("Slot 1 picker was not locked to the Core category")
     var component_selector := hud.get("_component_selector") as OptionButton
-    if component_selector.item_count != 20:
-        failures.append("Slot 1 Component dropdown did not list all 20 Cores")
+    if component_selector.item_count != 14:
+        failures.append("Slot 1 Component dropdown did not list all 14 Cores")
 
     hud.call("_select_metadata", component_selector, &"core_frost_lance")
     hud.call("_on_apply_selection")

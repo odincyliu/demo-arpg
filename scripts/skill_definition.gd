@@ -14,6 +14,7 @@ const NUMERIC_FIELDS: Dictionary = {
     &"homing_strength": TYPE_FLOAT,
     &"rotation_speed": TYPE_FLOAT,
     &"area_radius": TYPE_FLOAT,
+    &"impact_radius": TYPE_FLOAT,
     &"target_range": TYPE_FLOAT,
     &"chain_count": TYPE_INT,
     &"chain_range": TYPE_FLOAT,
@@ -91,6 +92,7 @@ var pierce_count: int = 0
 var homing_strength: float = 0.0
 var rotation_speed: float = 0.0
 var area_radius: float = 5.2
+var impact_radius: float = 0.0
 var target_range: float = 0.0
 var chain_count: int = 0
 var chain_range: float = 0.0
@@ -233,6 +235,7 @@ func finalize() -> void:
     repeat_interval = clampf(repeat_interval, 0.0, 2.0)
     pierce_count = clampi(pierce_count, 0, 32)
     area_radius = clampf(area_radius, 0.5, 30.0)
+    impact_radius = clampf(impact_radius, 0.0, 30.0)
     target_range = clampf(target_range, 0.0, 30.0)
     chain_count = clampi(chain_count, 0, 16)
     chain_range = clampf(chain_range, 0.0, 30.0)
@@ -282,14 +285,16 @@ func has_component(component_id: StringName) -> bool:
 
 func get_stats_text() -> String:
     var details := "Damage %.0f | Cooldown %.2fs" % [damage, cooldown]
-    if core_behavior in [&"projectile", &"summon"]:
+    if core_behavior in [&"projectile", &"wave", &"summon"]:
         details += " | Projectiles %d" % projectile_count
     if repeat_count > 1:
         details += " | Repeats %d" % repeat_count
-    if core_behavior not in [&"projectile", &"summon"] and shape_type in [&"circle", &"rotate"]:
+    if core_behavior not in [&"projectile", &"wave", &"summon"] and shape_type in [&"circle", &"rotate"]:
         details += " | Area %.1fm" % area_radius
     if target_range > 0.0:
         details += " | Range %.1fm" % target_range
+    if impact_radius > 0.0:
+        details += " | Impact %.1fm" % impact_radius
     if pierce_count > 0:
         details += "\nPierce %d" % pierce_count
     if chain_count > 0:

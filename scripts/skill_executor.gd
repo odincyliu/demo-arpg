@@ -93,6 +93,9 @@ func update_channel_target(aim_position: Vector3, facing_direction: Vector3) -> 
 
 
 func stop_channel() -> void:
+    if _channel_active and build != null and build.is_valid() and _runtime != null:
+        var origin := source_player.global_position if is_instance_valid(source_player) else _channel_aim
+        _runtime.end_channel(build.get_root_core(), origin, _channel_aim)
     _channel_active = false
     _channel_cast_id = 0
     _channel_tick_remaining = 0.0

@@ -24,6 +24,7 @@ var _hit_visual_sequence: int = 0
 func _ready() -> void:
     _projectile_manager = PROJECTILE_MANAGER_SCRIPT.new()
     _projectile_manager.projectile_impact.connect(_on_projectile_impact)
+    _projectile_manager.projectile_expiry_burst.connect(_on_projectile_expiry_burst)
     _projectile_manager.projectile_returned.connect(_on_projectile_returned)
     _projectile_manager.projectile_remnant.connect(_on_projectile_remnant)
     _projectile_manager.projectile_event.connect(_on_projectile_event)
@@ -40,6 +41,8 @@ func set_build_revision(revision: int) -> void:
     _build_revision = revision
     _scheduled_actions.clear()
     _held_groups.clear()
+    for effect: Dictionary in _persistent_effects:
+        _free_persistent_vfx(effect)
     _persistent_effects.clear()
     if _projectile_manager != null:
         _projectile_manager.clear_active()
@@ -76,6 +79,10 @@ func get_persistent_effect_count() -> int:
 
 func get_scheduled_action_count() -> int:
     return _scheduled_actions.size()
+
+
+func end_channel(definition: SkillDefinition, origin: Vector3, target_position: Vector3) -> void:
+    COMBAT_VFX.spawn_channel_end(get_tree().current_scene, definition, origin, target_position)
 
 
 func cast_skill(
@@ -131,7 +138,7 @@ func _execute_core(
         context: Dictionary
 ) -> void:
     match definition.core_behavior:
-        &"projectile":
+        &"projectile", &"wave":
             _spawn_projectile_pattern(definition, origin, direction, source, context)
         &"chain":
             _cast_chain(definition, origin, direction, source, context)
@@ -154,6 +161,12 @@ func _execute_core(
             if is_instance_valid(source):
                 var dash_origin := source.global_position
                 source.global_position += direction * definition.target_range
+                COMBAT_VFX.spawn_dash_sequence(
+                    get_tree().current_scene,
+                    dash_origin,
+                    source.global_position,
+                    source.rotation.y
+                )
                 _damage_line(definition, dash_origin, direction, source, context)
         _:
             for _instance_index: int in definition.instance_count:
@@ -323,6 +336,16 @@ func _on_projectile_impact(projectile: SkillProjectile, target: Node3D) -> void:
     var definition := projectile.definition
     var context := projectile.context
     _deal_hit(definition, target, projectile.source, context, projectile.direction)
+    if definition.impact_radius > 0.0:
+        _damage_area(
+            definition,
+            target.global_position,
+            definition.impact_radius * definition.size_multiplier,
+            projectile.source,
+            context,
+            0.72,
+            target
+        )
     if definition.fork_count > 0 and projectile.can_split:
         var spread := 36.0
         for index: int in definition.fork_count:
@@ -337,7 +360,23 @@ func _on_projectile_impact(projectile: SkillProjectile, target: Node3D) -> void:
             )
     if definition.chain_count > 0:
         _chain_from(definition, target, projectile.source, context, {target.get_instance_id(): true})
-    projectile.resolve_impact(target)
+    if definition.core_behavior != &"wave":
+        projectile.resolve_impact(target)
+
+
+func _on_projectile_expiry_burst(projectile: SkillProjectile, world_position: Vector3) -> void:
+    if projectile == null or projectile.definition == null:
+        return
+    var definition := projectile.definition
+    _damage_area(
+        definition,
+        world_position,
+        definition.impact_radius * definition.size_multiplier,
+        projectile.source,
+        projectile.context,
+        0.72
+    )
+    COMBAT_VFX.spawn_pulse(get_tree().current_scene, world_position, definition.color, definition.impact_radius)
 
 
 func _on_projectile_returned(projectile: SkillProjectile) -> void:
@@ -369,25 +408,37 @@ func _add_persistent(
         is_remnant: bool = false
 ) -> void:
     if _persistent_effects.size() >= MAX_PERSISTENT_EFFECTS:
-        _persistent_effects.pop_front()
+        var evicted_effect: Dictionary = _persistent_effects.pop_front()
+        _free_persistent_vfx(evicted_effect)
+    var duration: float = definition.remnant_duration if is_remnant else definition.persistent_duration
+    var radius: float = maxf(0.8, definition.area_radius * (0.38 if is_remnant else 1.0))
+    var vfx_node: Node3D = COMBAT_VFX.spawn_persistent_field(
+        get_tree().current_scene,
+        definition,
+        world_position,
+        radius,
+        duration,
+        is_remnant
+    )
     _persistent_effects.append({
         "definition": definition,
         "position": world_position,
         "source": source,
         "context": context.duplicate(true),
-        "remaining": definition.remnant_duration if is_remnant else definition.persistent_duration,
+        "remaining": duration,
         "tick": 0.0,
         "interval": definition.remnant_tick_interval if is_remnant else definition.persistent_tick_interval,
         "damage_multiplier": damage_multiplier,
-        "radius": maxf(0.8, definition.area_radius * (0.38 if is_remnant else 1.0)),
+        "radius": radius,
+        "vfx_node": vfx_node,
     })
-    COMBAT_VFX.spawn_pulse(get_tree().current_scene, world_position, definition.color, 0.3 if is_remnant else 0.75)
 
 
 func _process_persistent(delta: float) -> void:
     for index: int in range(_persistent_effects.size() - 1, -1, -1):
         var effect := _persistent_effects[index]
         if int((effect["context"] as Dictionary).get("build_revision", -1)) != _build_revision:
+            _free_persistent_vfx(effect)
             _persistent_effects.remove_at(index)
             continue
         effect["remaining"] = float(effect["remaining"]) - delta
@@ -403,7 +454,14 @@ func _process_persistent(delta: float) -> void:
                 float(effect["damage_multiplier"])
             )
         if float(effect["remaining"]) <= 0.0:
+            _free_persistent_vfx(effect)
             _persistent_effects.remove_at(index)
+
+
+func _free_persistent_vfx(effect: Dictionary) -> void:
+    var vfx_node := effect.get("vfx_node") as Node
+    if is_instance_valid(vfx_node):
+        vfx_node.queue_free()
 
 
 func _spawn_minion(
@@ -572,12 +630,15 @@ func _damage_area(
         radius: float,
         source: Node3D,
         context: Dictionary,
-        damage_multiplier: float
+        damage_multiplier: float,
+        excluded_target: Node3D = null
 ) -> void:
     for candidate: Node in get_tree().get_nodes_in_group("damageable"):
         if not candidate is Node3D:
             continue
         var target := candidate as Node3D
+        if target == excluded_target:
+            continue
         if target.global_position.distance_to(centre) <= radius:
             var direction := target.global_position - centre
             direction.y = 0.0

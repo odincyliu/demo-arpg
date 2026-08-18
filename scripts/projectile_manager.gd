@@ -2,6 +2,7 @@ class_name ProjectileManager
 extends Node
 
 signal projectile_impact(projectile: SkillProjectile, target: Node3D)
+signal projectile_expiry_burst(projectile: SkillProjectile, world_position: Vector3)
 signal projectile_returned(projectile: SkillProjectile)
 signal projectile_remnant(projectile: SkillProjectile, world_position: Vector3)
 signal projectile_event(message: String, event_color: Color)
@@ -34,6 +35,7 @@ func request_projectile(
     if _pool.is_empty():
         projectile = PROJECTILE_SCRIPT.new()
         projectile.impact_requested.connect(_on_impact_requested)
+        projectile.expiry_burst_requested.connect(_on_expiry_burst_requested)
         projectile.return_completed.connect(_on_return_completed)
         projectile.remnant_requested.connect(_on_remnant_requested)
         projectile.released.connect(_on_projectile_released)
@@ -78,6 +80,10 @@ func clear_active() -> void:
 
 func _on_impact_requested(projectile: SkillProjectile, target: Node3D) -> void:
     projectile_impact.emit(projectile, target)
+
+
+func _on_expiry_burst_requested(projectile: SkillProjectile, world_position: Vector3) -> void:
+    projectile_expiry_burst.emit(projectile, world_position)
 
 
 func _on_return_completed(projectile: SkillProjectile) -> void:

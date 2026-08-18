@@ -31,7 +31,7 @@ static func get_projectile_frames(active_skill_id: StringName) -> SpriteFrames:
             frames = _build_sequence(FIREBALL_FOLDER, 28, 32.0, true)
         &"chain_lightning":
             frames = _build_atlas_sequence(LIGHTNING_ATLAS_PATH, 4, 2, 8, 22.0, true)
-        &"shockwave", &"returning_blade":
+        &"shockwave":
             frames = _build_sequence(BLADE_WAVE_FOLDER, 6, 28.0, true)
         &"summon":
             frames = _build_single_frame(KENNEY_MAGIC_CORE)
@@ -51,9 +51,9 @@ static func get_cast_frames(active_skill_id: StringName) -> SpriteFrames:
             frames = _build_sequence(ICE_NOVA_FOLDER, 19, 30.0, false)
         &"chain_lightning":
             frames = _build_atlas_sequence(LIGHTNING_ATLAS_PATH, 4, 2, 8, 24.0, false)
-        &"shockwave", &"returning_blade":
+        &"shockwave":
             frames = _build_sequence(BLADE_WAVE_FOLDER, 6, 28.0, false)
-        &"earthbreaker":
+        &"slash":
             frames = _build_sequence(HEAVY_SLASH_FOLDER, 6, 25.0, false)
         _:
             return null
@@ -67,7 +67,7 @@ static func get_projectile_pixel_size(active_skill_id: StringName) -> float:
             return 0.007
         &"chain_lightning":
             return 0.0058
-        &"shockwave", &"returning_blade":
+        &"shockwave":
             return 0.015
         &"summon":
             return 0.004
@@ -78,9 +78,8 @@ static func get_projectile_modulate(
         active_skill_id: StringName,
         skill_color: Color
 ) -> Color:
-    if active_skill_id in [&"chain_lightning", &"summon"]:
-        return skill_color.lightened(0.1)
-    return Color.WHITE
+    var intensity := clampf((skill_color.r + skill_color.g + skill_color.b) / 3.0, 0.2, 1.0)
+    return Color(intensity, intensity, intensity, skill_color.a)
 
 
 static func _build_sequence(
