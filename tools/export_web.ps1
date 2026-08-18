@@ -1,5 +1,5 @@
 param(
-    [string]$GodotPath = "D:\funny\Godot_v4.6.2-stable_win64\Godot_v4.6.2-stable_win64_console.exe"
+    [string]$GodotPath = "D:\funny\Godot_latest_version\Godot_console.exe"
 )
 
 $ErrorActionPreference = "Stop"
@@ -9,14 +9,26 @@ $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $ExportPath = Join-Path $ProjectRoot "docs\index.html"
 $ExportDirectory = Split-Path -Parent $ExportPath
 $ProjectAppData = Join-Path $ProjectRoot ".validation-appdata"
-$TemplateDirectory = Join-Path $ProjectAppData "Godot\export_templates\4.6.2.stable"
+$ExpectedGodotVersion = "4.7.1.stable"
+$TemplateDirectory = Join-Path $ProjectAppData "Godot\export_templates\$ExpectedGodotVersion"
 
 if (-not (Test-Path -LiteralPath $GodotPath -PathType Leaf)) {
     throw "找不到 Godot console executable：$GodotPath"
 }
 
-if (-not (Test-Path -LiteralPath (Join-Path $TemplateDirectory "web_release.zip") -PathType Leaf)) {
-    throw "找不到 Godot 4.6.2 Web export template：$TemplateDirectory"
+$ActualGodotVersion = (& $GodotPath --version).Trim()
+if ($LASTEXITCODE -ne 0 -or -not $ActualGodotVersion.StartsWith($ExpectedGodotVersion)) {
+    throw "Godot 版本不符：預期 $ExpectedGodotVersion，實際 $ActualGodotVersion"
+}
+
+$RequiredTemplates = @("web_nothreads_debug.zip", "web_nothreads_release.zip")
+$MissingTemplates = @(
+    $RequiredTemplates | Where-Object {
+        -not (Test-Path -LiteralPath (Join-Path $TemplateDirectory $_) -PathType Leaf)
+    }
+)
+if ($MissingTemplates.Count -gt 0) {
+    throw "找不到 Godot $ExpectedGodotVersion Web export template：$($MissingTemplates -join ', ')"
 }
 
 New-Item -ItemType Directory -Force -Path $ExportDirectory | Out-Null
@@ -35,4 +47,3 @@ finally {
 
 Set-Content -LiteralPath (Join-Path $ExportDirectory ".nojekyll") -Value "" -NoNewline
 Write-Host "Web export ready: $ExportPath"
-

@@ -111,7 +111,7 @@ $godot = 'D:\funny\Godot_latest_version\Godot_console.exe'
 & $godot --headless --path 'D:\funny\side-scroller' --log-file 'D:\funny\side-scroller\artifacts\stress.log' --script res://tests/test_stress_30s.gd
 ```
 
-Web 匯出入口為 `docs/index.html`。Headless 驗證使用共用 Godot 4.7.1；Web build 仍由既有 4.6.2 export template 產生，以驗證 GL Compatibility：
+專案固定使用 Godot 4.7.1 stable；Headless 驗證與 Web export 必須使用相同版本，匯出腳本會拒絕其他引擎或 template。Web 匯出入口為 `docs/index.html`：
 
 ```powershell
 ./tools/export_web.ps1
