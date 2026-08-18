@@ -11,9 +11,9 @@
 - `Q`：模擬玩家受傷，用於 On Damage Taken
 - `R`：重置訓練木樁
 
-畫面頂部維持六格單列。Slot 1 鎖定 Core；每格候選會依完整草稿的語法與相容性顯示原因。編輯器容許保留無效草稿，戰鬥 Runtime 只在 `compile_build()` 成功後才採用新 Build。
+畫面頂部固定顯示六個空槽，從 Slot 1 的 Core 開始逐格組合。點擊可用槽位會開啟分類圖卡選擇器；不相容候選仍會灰化顯示並提供原因。編輯器容許保留無效草稿，戰鬥 Runtime 只在 `compile_build()` 成功後才採用新 Build。首次進入沒有啟用中的技能，選入第一個合法 Core 後才可施放。
 
-預設 Build：
+`LOAD FROST PRESET` 可載入範例 Build：
 
 ```text
 Frost Lance → Multishot → Hold → Freeze → On Freeze → Shockwave
