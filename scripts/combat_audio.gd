@@ -9,6 +9,8 @@ var _phase: float = 0.0
 
 
 func _ready() -> void:
+    if DisplayServer.get_name() == "headless":
+        return
     var generator := AudioStreamGenerator.new()
     generator.mix_rate = MIX_RATE
     generator.buffer_length = 0.35
@@ -22,9 +24,10 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
-    _playback = null
     if _audio_player != null:
         _audio_player.stop()
+        _audio_player.stream = null
+    _playback = null
 
 
 func play_cast() -> void:

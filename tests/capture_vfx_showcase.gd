@@ -1,17 +1,16 @@
 extends SceneTree
 
 const COMBAT_VFX := preload("res://scripts/combat_vfx.gd")
-const CONCEPT_LIBRARY := preload("res://scripts/concept_library.gd")
 const PROJECTILE_SCRIPT := preload("res://scripts/projectile.gd")
 const OUTPUT_PATH := "res://artifacts/vfx_showcase.png"
 
 const SHOWCASE_SKILLS: Array[StringName] = [
-    &"skill_fireball",
-    &"skill_ice_nova",
-    &"skill_thunder_orb",
-    &"skill_blade_wave",
-    &"skill_summon_core",
-    &"skill_heavy_slash",
+    &"core_flame_orb",
+    &"core_frost_nova",
+    &"core_chain_lightning",
+    &"core_returning_blade",
+    &"core_summon",
+    &"core_earthbreaker",
 ]
 const SHOWCASE_POSITIONS: Array[Vector3] = [
     Vector3(-5.2, 0.0, 3.5),
@@ -36,7 +35,7 @@ func _capture() -> void:
     await process_frame
     await physics_frame
 
-    var hud := get_first_node_in_group("concept_builder_ui") as PrototypeHud
+    var hud := get_first_node_in_group("six_link_builder_ui") as PrototypeHud
     if hud != null:
         hud.visible = false
     var player := get_first_node_in_group("player") as PlayerController
@@ -57,12 +56,12 @@ func _capture() -> void:
         var position := SHOWCASE_POSITIONS[index]
         COMBAT_VFX.spawn_cast_layers(main_scene, definition, position, Vector3.FORWARD)
         _add_label(main_scene, definition.display_name, position)
-        if definition.action_type in [&"projectile", &"summon"]:
+        if definition.core_behavior in [&"projectile", &"summon"]:
             _add_projectile_preview(main_scene, definition, position)
 
     for _frame: int in 4:
         await process_frame
-    var thunder_definition := _compile_skill(&"skill_thunder_orb")
+    var thunder_definition := _compile_skill(&"core_chain_lightning")
     var thunder_position := SHOWCASE_POSITIONS[2]
     COMBAT_VFX.spawn_chain_lightning(
         main_scene,
@@ -86,11 +85,11 @@ func _capture() -> void:
     quit(0)
 
 
-func _compile_skill(concept_id: StringName) -> SkillDefinition:
-    var graph := SkillGraph.new()
-    graph.set_node(SkillGraphNode.new().configure(0, concept_id, SkillGraph.ROOT_PARENT))
-    var result := CONCEPT_LIBRARY.compile_graph(graph)
-    return result.graph.get_primary_skill() if result.valid else null
+func _compile_skill(component_id: StringName) -> SkillDefinition:
+    var build := SixLinkBuild.new()
+    build.set_slot(SkillSlot.new().configure(0, component_id))
+    var result := SkillCompiler.compile_build(build)
+    return result.build.get_root_core() if result.valid else null
 
 
 func _add_projectile_preview(

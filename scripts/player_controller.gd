@@ -2,9 +2,9 @@ class_name PlayerController
 extends CharacterBody3D
 
 signal combat_event(message: String, event_color: Color)
-signal skill_changed(graph: SkillGraph)
+signal skill_changed(build: SixLinkBuild)
 
-const SKILL_GRAPH_EXECUTOR_SCRIPT := preload("res://scripts/skill_graph_executor.gd")
+const SKILL_EXECUTOR_SCRIPT := preload("res://scripts/skill_executor.gd")
 const COMBAT_VFX := preload("res://scripts/combat_vfx.gd")
 
 @export var movement_speed: float = 7.0
@@ -18,12 +18,12 @@ const COMBAT_VFX := preload("res://scripts/combat_vfx.gd")
 @export var dash_duration: float = 0.16
 @export var dash_cooldown: float = 0.72
 
-var current_graph: SkillGraph
+var current_build: SixLinkBuild
 var current_skill: SkillDefinition
 var max_health: float = 100.0
 var health: float = 100.0
 var _camera: Camera3D
-var _skill_executor: SkillGraphExecutor
+var _skill_executor: SkillExecutor
 var _facing_direction: Vector3 = Vector3(0.0, 0.0, -1.0)
 var _cooldown_remaining: float = 0.0
 var _dash_remaining: float = 0.0
@@ -47,7 +47,7 @@ func _ready() -> void:
     _build_visuals()
     _build_move_marker()
 
-    _skill_executor = SKILL_GRAPH_EXECUTOR_SCRIPT.new()
+    _skill_executor = SKILL_EXECUTOR_SCRIPT.new()
     _skill_executor.configure(self)
     _skill_executor.event_fired.connect(_on_runtime_event)
     add_child(_skill_executor)
@@ -57,6 +57,7 @@ func _physics_process(delta: float) -> void:
     _cooldown_remaining = maxf(_cooldown_remaining - delta, 0.0)
     _dash_cooldown_remaining = maxf(_dash_cooldown_remaining - delta, 0.0)
     _cast_lock_remaining = maxf(_cast_lock_remaining - delta, 0.0)
+    _update_channel_state()
     _update_held_arpg_actions()
     _update_movement(delta)
     _update_facing(delta)
@@ -85,30 +86,41 @@ func set_view_camera(view_camera: Camera3D) -> void:
     _camera = view_camera
 
 
-func set_skill_graph(graph: SkillGraph) -> void:
-    if graph == null or not graph.is_valid():
+func set_skill_build(build: SixLinkBuild) -> void:
+    if build == null or not build.is_valid():
         return
-    current_graph = graph
-    current_skill = graph.get_primary_skill()
-    _skill_executor.set_graph(graph)
+    current_build = build
+    current_skill = build.get_root_core()
+    _skill_executor.set_build(build)
     _cooldown_remaining = 0.0
-    skill_changed.emit(graph)
+    skill_changed.emit(build)
 
 
 func try_cast_skill() -> void:
-    if current_graph == null or _cooldown_remaining > 0.0:
+    if current_build == null or _cooldown_remaining > 0.0:
         return
     var aim_position := _get_mouse_world_position()
     _face_toward(aim_position, true)
+    if current_skill.channelled:
+        var was_channeling := _skill_executor.is_channeling()
+        if _skill_executor.begin_channel(aim_position, _facing_direction):
+            if not was_channeling:
+                _animate_cast()
+                combat_event.emit("Cast -> %s" % current_skill.display_name, current_skill.color)
+            if not current_skill.channel_can_move:
+                _cast_lock_remaining = maxf(_cast_lock_remaining, 0.08)
+        return
     if _skill_executor.request_manual_cast(aim_position, _facing_direction):
         _cooldown_remaining = current_skill.cooldown
         _cast_lock_remaining = cast_movement_lock
         _animate_cast()
+        combat_event.emit("Cast -> %s" % current_skill.display_name, current_skill.color)
 
 
 func try_dash() -> void:
     if _dash_cooldown_remaining > 0.0:
         return
+    _end_channel()
     var input_direction := _get_keyboard_move_direction()
     if input_direction.length_squared() <= 0.0 and _has_move_destination:
         input_direction = _direction_to_destination()
@@ -118,7 +130,6 @@ func try_dash() -> void:
     _dash_trail_timer = 0.0
     _animate_dash()
     combat_event.emit("Dash", Color("7ad7ff"))
-    _skill_executor.request_external_event(&"dash", global_position)
 
 
 func simulate_damage() -> void:
@@ -130,7 +141,7 @@ func simulate_damage() -> void:
         1.1
     )
     combat_event.emit("Simulated Damage -24", Color("ff688a"))
-    _skill_executor.request_external_event(&"damaged", global_position)
+    _skill_executor.request_player_damage(24.0, global_position)
 
 
 func heal(amount: float) -> void:
@@ -159,8 +170,32 @@ func get_facing_direction() -> Vector3:
     return _facing_direction
 
 
-func get_skill_executor() -> SkillGraphExecutor:
+func get_skill_executor() -> SkillExecutor:
     return _skill_executor
+
+
+func _update_channel_state() -> void:
+    if _skill_executor == null or not _skill_executor.is_channeling():
+        return
+    var held := Input.is_action_pressed("cast_skill") or (
+        Input.is_action_pressed("force_attack") and Input.is_action_pressed("move_to_cursor")
+    )
+    if not held or current_build == null or current_skill == null or not current_skill.channelled:
+        _end_channel()
+        return
+    var aim_position := _get_mouse_world_position()
+    _face_toward(aim_position)
+    _skill_executor.update_channel_target(aim_position, _facing_direction)
+    if not current_skill.channel_can_move:
+        _cast_lock_remaining = maxf(_cast_lock_remaining, 0.08)
+
+
+func _end_channel() -> void:
+    if _skill_executor == null or not _skill_executor.is_channeling():
+        return
+    _skill_executor.stop_channel()
+    if current_skill != null:
+        _cooldown_remaining = current_skill.cooldown
 
 
 func set_move_destination(world_position: Vector3) -> void:

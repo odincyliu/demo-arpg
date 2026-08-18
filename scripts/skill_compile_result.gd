@@ -4,9 +4,9 @@ extends RefCounted
 var valid: bool = false
 var errors: PackedStringArray = []
 var warnings: PackedStringArray = []
-var applied_node_ids: Array[int] = []
-var compiled_skills: Dictionary = {}
-var graph: SkillGraph
+var applied_slot_indices: Array[int] = []
+var compiled_build: CompiledSkillBuild
+var build: SixLinkBuild
 
 
 func fail(message: String) -> void:
@@ -18,4 +18,3 @@ func fail(message: String) -> void:
 func finish() -> SkillCompileResult:
     valid = errors.is_empty()
     return self
-

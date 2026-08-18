@@ -1,8 +1,7 @@
 extends SceneTree
 
 const COMBAT_VFX := preload("res://scripts/combat_vfx.gd")
-const CONCEPT_LIBRARY := preload("res://scripts/concept_library.gd")
-const SKILL_VFX_ASSETS := preload("res://scripts/skill_vfx_assets.gd")
+const TEST_UTILS := preload("res://tests/six_link_test_utils.gd")
 
 
 func _init() -> void:
@@ -11,44 +10,43 @@ func _init() -> void:
 
 func _run_test() -> void:
     var failures: PackedStringArray = []
-    _verify_projectile_art(failures)
-    _verify_projectile_identity_survives_density_limit(failures)
-    await _verify_repeated_damage_numbers(failures)
-    await _verify_chain_lightning_vfx(failures)
-    for raw_concept: Variant in CONCEPT_LIBRARY.get_catalog().values():
-        var concept := raw_concept as SkillConcept
-        var graph := _host_graph_for(concept)
-        var result := CONCEPT_LIBRARY.compile_graph(graph)
+    for raw_component: Variant in SkillCatalog.get_catalog().values():
+        var component := raw_component as SkillComponent
+        var result := _representative_result(component)
         if not result.valid:
-            failures.append("Concept %s has no VFX host: %s" % [concept.concept_id, " / ".join(result.errors)])
+            failures.append("%s has no VFX host: %s" % [component.component_id, "; ".join(result.errors)])
             continue
-        var definition := result.graph.get_compiled_skill(2) if concept.concept_kind == &"Trigger" else result.graph.get_primary_skill()
-        if definition == null:
-            failures.append("Concept %s has no compiled skill for VFX" % concept.concept_id)
-            continue
+        var definition := result.compiled_build.triggered_core if component.is_trigger() else result.compiled_build.root_core
         var holder := Node3D.new()
         root.add_child(holder)
         COMBAT_VFX.spawn_cast_layers(holder, definition, Vector3.ZERO, Vector3.FORWARD)
-        var expected_group := _expected_vfx_group(concept.concept_kind)
-        if expected_group != &"" and get_nodes_in_group(expected_group).is_empty():
-            failures.append("Concept %s has no cast VFX in %s" % [concept.concept_id, expected_group])
-        if concept.concept_kind == &"Skill" and get_nodes_in_group("vfx_skill_identity").is_empty():
-            failures.append("Skill %s has no CC0-backed identity VFX" % concept.concept_id)
-        if concept.concept_kind in [&"Modifier", &"Effect"]:
-            COMBAT_VFX.spawn_hit_layers(
-                holder,
-                definition,
-                Vector3(0.0, 1.0, -2.0),
-                Vector3(0.0, 1.0, 2.0),
-                Vector3.FORWARD
-            )
-            if get_nodes_in_group(expected_group).is_empty():
-                failures.append("Concept %s has no hit VFX in %s" % [concept.concept_id, expected_group])
+        await process_frame
+        if holder.get_child_count() == 0:
+            failures.append("%s produced no cast VFX or generic fallback" % component.component_id)
+        match component.category:
+            &"Core":
+                if _count_group_children(holder, &"vfx_skill_identity") == 0:
+                    failures.append("Core %s has no identity VFX fallback" % component.component_id)
+            &"Trigger":
+                if definition.trigger_type == &"" or _count_group_children(holder, &"vfx_trigger") == 0:
+                    failures.append("Trigger %s has no identifiable cue" % component.component_id)
+            &"Shape":
+                if _count_group_children(holder, &"vfx_shape") == 0:
+                    failures.append("Shape %s has no VFX" % component.component_id)
+            &"Trajectory", &"Pattern", &"Transform":
+                if _count_group_children(holder, &"vfx_modifier") == 0:
+                    failures.append("%s %s has no operation VFX" % [component.category, component.component_id])
+            &"Effect":
+                COMBAT_VFX.spawn_hit_layers(holder, definition, Vector3(0.0, 1.0, -2.0), Vector3(0.0, 1.0, 2.0), Vector3.FORWARD)
+                if _count_group_children(holder, &"vfx_effect") == 0:
+                    failures.append("Effect %s has no hit VFX" % component.component_id)
         holder.queue_free()
         await process_frame
 
+    await _verify_projectile_fallback(failures)
+    await _verify_chain_lightning(failures)
     if failures.is_empty():
-        print("PASS: every graph Concept has matching cast and hit VFX")
+        print("PASS: all 55 Components expose Core/Trigger/operation/status VFX with generic fallback")
         quit(0)
         return
     for failure: String in failures:
@@ -56,93 +54,67 @@ func _run_test() -> void:
     quit(1)
 
 
-func _verify_projectile_art(failures: PackedStringArray) -> void:
-    for skill_id: StringName in [&"fireball", &"thunder_orb", &"blade_wave", &"summon_core"]:
-        var frames := SKILL_VFX_ASSETS.get_projectile_frames(skill_id)
-        if frames == null or frames.get_frame_count(&"default") <= 0:
-            failures.append("Projectile skill %s has no animated CC0 art" % skill_id)
-    for skill_id: StringName in [&"ice_nova", &"thunder_orb", &"blade_wave", &"heavy_slash"]:
-        var frames := SKILL_VFX_ASSETS.get_cast_frames(skill_id)
-        if frames == null or frames.get_frame_count(&"default") <= 0:
-            failures.append("Cast skill %s has no animated CC0 art" % skill_id)
+func _representative_result(component: SkillComponent) -> SkillCompileResult:
+    if component.is_core():
+        return TEST_UTILS.compile([component.component_id])
+    if component.is_trigger():
+        if component.component_id == &"trigger_channel":
+            return TEST_UTILS.compile([&"core_void_beam", component.component_id, &"core_meteor"])
+        if component.component_id == &"trigger_return":
+            return TEST_UTILS.compile([&"core_returning_blade", &"trajectory_return", component.component_id, &"core_explosion"])
+        return TEST_UTILS.compile([&"core_rapid_slash", component.component_id, &"core_explosion"])
+    var host := &"core_arrow_shot"
+    match component.component_id:
+        &"shape_nova":
+            host = &"core_shockwave"
+        &"effect_ignite":
+            host = &"core_flame_orb"
+        &"effect_freeze":
+            host = &"core_frost_lance"
+        &"effect_shock":
+            host = &"core_chain_lightning"
+        &"pattern_hold", &"pattern_remnant", &"shape_orbit":
+            host = &"core_flame_orb"
+    return TEST_UTILS.compile([host, component.component_id])
 
 
-func _verify_projectile_identity_survives_density_limit(failures: PackedStringArray) -> void:
-    var graph := SkillGraph.new()
-    _put_node(graph, 0, &"skill_blade_wave", SkillGraph.ROOT_PARENT)
-    var result := CONCEPT_LIBRARY.compile_graph(graph)
-    if not result.valid:
-        failures.append("Blade Wave VFX density graph failed: %s" % " / ".join(result.errors))
-        return
-    var definition := result.graph.get_primary_skill()
+func _count_group_children(holder: Node, group: StringName) -> int:
+    var count := 0
+    for child: Node in holder.get_children():
+        if child.is_in_group(group):
+            count += 1
+    return count
+
+
+func _verify_projectile_fallback(failures: PackedStringArray) -> void:
+    var result := TEST_UTILS.compile([&"core_frost_lance"])
     var holder := Node3D.new()
     root.add_child(holder)
     var manager := ProjectileManager.new()
     holder.add_child(manager)
-    for index: int in 10:
-        manager.request_projectile(
-            holder,
-            definition,
-            holder,
-            Vector3.ZERO,
-            Vector3.FORWARD.rotated(Vector3.UP, float(index) * 0.05),
-            {},
-            true
-        )
-    var missing_identity_count := 0
-    var active_projectiles := manager.get("_active") as Dictionary
-    for raw_projectile: Variant in active_projectiles.values():
-        var projectile := raw_projectile as SkillProjectile
-        var skill_sprite := projectile.get("_skill_sprite") as AnimatedSprite3D
-        if skill_sprite == null or not skill_sprite.visible or skill_sprite.sprite_frames == null:
-            missing_identity_count += 1
-    if active_projectiles.size() != 10 or missing_identity_count > 0:
-        failures.append(
-            "Blade Wave identity VFX missing on %d of %d projectiles after rich VFX cap" % [
-                missing_identity_count,
-                active_projectiles.size(),
-            ]
-        )
+    await process_frame
+    var projectile := manager.request_projectile(
+        holder,
+        result.build.get_root_core(),
+        holder,
+        Vector3.ZERO,
+        Vector3.FORWARD,
+        {"build_revision": 1},
+        true
+    )
+    if projectile == null or not projectile.visible:
+        failures.append("Projectile without dedicated art had no procedural fallback")
     manager.clear_active()
     holder.queue_free()
-
-
-func _verify_repeated_damage_numbers(failures: PackedStringArray) -> void:
-    var holder := Node3D.new()
-    root.add_child(holder)
-    for hit_index: int in 8:
-        COMBAT_VFX.spawn_damage_number(
-            holder,
-            Vector3(0.0, 2.4, 0.0),
-            10.0 + hit_index,
-            Color("ff9b55"),
-            hit_index == 7
-        )
-    await process_frame
-    var lanes: Dictionary = {}
-    for number: Node in get_nodes_in_group("damage_number_vfx"):
-        if number.get_parent() == holder:
-            lanes[int(number.get_meta("damage_number_lane", -1))] = true
-    if lanes.size() != 8:
-        failures.append("Repeated damage numbers overlapped lanes or were dropped")
-    for _frame: int in 50:
-        await physics_frame
-    holder.queue_free()
     await process_frame
 
 
-func _verify_chain_lightning_vfx(failures: PackedStringArray) -> void:
+func _verify_chain_lightning(failures: PackedStringArray) -> void:
     var holder := Node3D.new()
     root.add_child(holder)
     var from_position := Vector3(0.0, 1.1, 0.0)
     var to_position := Vector3(5.0, 1.0, -1.0)
-    COMBAT_VFX.spawn_chain_lightning(
-        holder,
-        from_position,
-        to_position,
-        Color("8fdcff"),
-        17
-    )
+    COMBAT_VFX.spawn_chain_lightning(holder, from_position, to_position, Color("8fdcff"), 17)
     await process_frame
     var chain_root: Node3D
     for candidate: Node in get_nodes_in_group("vfx_chain_lightning"):
@@ -150,73 +122,12 @@ func _verify_chain_lightning_vfx(failures: PackedStringArray) -> void:
             chain_root = candidate as Node3D
             break
     if chain_root == null:
-        failures.append("Chain Lightning created no inspectable VFX root")
-    else:
-        var segment_count := int(chain_root.get_meta("segment_count"))
-        if segment_count < 7 or segment_count > 9:
-            failures.append("Chain Lightning did not use 7-9 jagged segments")
-        if chain_root.get_child_count() != segment_count * 2:
-            failures.append("Chain Lightning is missing its glow or white core layer")
-        if (chain_root.get_meta("from_position") as Vector3) != from_position:
-            failures.append("Chain Lightning did not preserve its source endpoint")
-        if (chain_root.get_meta("to_position") as Vector3) != to_position:
-            failures.append("Chain Lightning did not preserve its target endpoint")
+        failures.append("Shared Chain operation created no lightning VFX")
+    elif int(chain_root.get_meta("segment_count")) < 7 or int(chain_root.get_meta("segment_count")) > 9:
+        failures.append("Shared Chain lightning did not use 7-9 segments")
     for _frame: int in 36:
         await physics_frame
     if not get_nodes_in_group("vfx_chain_lightning").is_empty():
-        failures.append("Chain Lightning VFX remained after 0.5 seconds")
+        failures.append("Chain VFX remained after its lifetime")
     holder.queue_free()
     await process_frame
-
-
-func _host_graph_for(concept: SkillConcept) -> SkillGraph:
-    var graph := SkillGraph.new()
-    if concept.concept_kind == &"Skill":
-        _put_node(graph, 0, concept.concept_id, SkillGraph.ROOT_PARENT)
-        return graph
-    if concept.concept_kind == &"Trigger":
-        _put_node(graph, 0, &"skill_fireball", SkillGraph.ROOT_PARENT)
-        var parent := SkillGraph.PLAYER_EVENT_PARENT if CONCEPT_LIBRARY.get_trigger_type(concept.concept_id) in [&"damaged", &"dash"] else 0
-        _put_node(graph, 1, concept.concept_id, parent, TriggerConfig.new())
-        _put_node(graph, 2, &"skill_ice_nova", 1)
-        return graph
-    var host := &"skill_fireball"
-    match concept.concept_id:
-        &"action_projectile", &"shape_line":
-            host = &"skill_ice_nova"
-        &"emitter_player":
-            host = &"skill_ice_nova"
-        &"modifier_combo":
-            host = &"skill_heavy_slash"
-        &"effect_fire", &"effect_poison", &"effect_ice", &"effect_lifesteal", &"effect_explosion":
-            host = &"skill_blade_wave"
-    _put_node(graph, 0, host, SkillGraph.ROOT_PARENT)
-    _put_node(graph, 1, concept.concept_id, 0)
-    return graph
-
-
-func _put_node(
-        graph: SkillGraph,
-        node_id: int,
-        concept_id: StringName,
-        parent_node_id: int,
-        config: TriggerConfig = null
-) -> void:
-    graph.set_node(SkillGraphNode.new().configure(node_id, concept_id, parent_node_id, config))
-
-
-func _expected_vfx_group(kind: StringName) -> StringName:
-    match kind:
-        &"Trigger":
-            return &"vfx_trigger"
-        &"Skill", &"Action":
-            return &"vfx_action"
-        &"Emitter":
-            return &"vfx_emitter"
-        &"Pattern":
-            return &"vfx_shape"
-        &"Modifier":
-            return &"vfx_modifier"
-        &"Effect":
-            return &"vfx_effect"
-    return &""

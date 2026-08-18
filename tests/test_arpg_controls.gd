@@ -1,6 +1,6 @@
 extends SceneTree
 
-const CONCEPT_LIBRARY := preload("res://scripts/concept_library.gd")
+const TEST_UTILS := preload("res://tests/six_link_test_utils.gd")
 
 
 func _init() -> void:
@@ -25,6 +25,7 @@ func _run_test() -> void:
     await _verify_destination_movement(player, failures)
     await _verify_keyboard_override(player, failures)
     await _verify_hold_to_attack(player, failures)
+    await _verify_channel_lifecycle(player, failures)
     await _verify_dash(player, failures)
 
     Input.action_release("move_left")
@@ -110,17 +111,17 @@ func _verify_hold_to_attack(
         player: PlayerController,
         failures: PackedStringArray
 ) -> void:
-    var result := CONCEPT_LIBRARY.compile_graph(_single_skill_graph(&"skill_ice_nova"))
+    var result := TEST_UTILS.compile([&"core_frost_nova"])
     if not result.valid:
-        failures.append("ARPG attack graph failed: %s" % " / ".join(result.errors))
+        failures.append("ARPG attack build failed: %s" % " / ".join(result.errors))
         return
-    result.graph.get_primary_skill().cooldown = 0.08
-    player.set_skill_graph(result.graph)
+    result.build.get_root_core().cooldown = 0.08
+    player.set_skill_build(result.build)
     player.global_position = Vector3(-8.0, 0.0, 8.0)
     player.velocity = Vector3.ZERO
     var cast_counter := {"count": 0}
     player.combat_event.connect(func(message: String, _color: Color) -> void:
-        if message.contains("Cast -> Ice Nova"):
+        if message.contains("Cast -> Frost Nova"):
             cast_counter["count"] = int(cast_counter["count"]) + 1
     )
 
@@ -162,10 +163,42 @@ func _verify_dash(player: PlayerController, failures: PackedStringArray) -> void
         failures.append("Dash did not move along the current movement/facing direction")
 
 
-func _single_skill_graph(concept_id: StringName) -> SkillGraph:
-    var graph := SkillGraph.new()
-    graph.set_node(SkillGraphNode.new().configure(0, concept_id, SkillGraph.ROOT_PARENT))
-    return graph
+func _verify_channel_lifecycle(player: PlayerController, failures: PackedStringArray) -> void:
+    var beam := TEST_UTILS.compile([&"core_void_beam"])
+    player.set_skill_build(beam.build)
+    player.set("_cooldown_remaining", 0.0)
+    Input.action_press("cast_skill")
+    player.try_cast_skill()
+    for _frame: int in 3:
+        await physics_frame
+    if not player.get_skill_executor().is_channeling():
+        failures.append("Void Beam did not remain active while the cast input was held")
+    if player.get_cooldown_remaining() > 0.0:
+        failures.append("Channel cooldown started before the channel ended")
+    Input.action_release("cast_skill")
+    await physics_frame
+    await physics_frame
+    if player.get_skill_executor().is_channeling() or player.get_cooldown_remaining() <= 0.0:
+        failures.append("Releasing Channel did not end it and start cooldown")
+
+    player.set("_cooldown_remaining", 0.0)
+    player.set("_dash_cooldown_remaining", 0.0)
+    Input.action_press("cast_skill")
+    player.try_cast_skill()
+    await physics_frame
+    player.try_dash()
+    Input.action_release("cast_skill")
+    if player.get_skill_executor().is_channeling():
+        failures.append("Dash did not cancel an active Channel")
+
+    player.set("_cooldown_remaining", 0.0)
+    Input.action_press("cast_skill")
+    player.try_cast_skill()
+    await physics_frame
+    player.set_skill_build(TEST_UTILS.compile([&"core_slash"]).build)
+    Input.action_release("cast_skill")
+    if player.get_skill_executor().is_channeling():
+        failures.append("Switching Build did not cancel an active Channel")
 
 
 func _has_mouse_binding(action: StringName, button: MouseButton) -> bool:

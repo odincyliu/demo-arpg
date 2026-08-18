@@ -2,6 +2,8 @@ class_name SkillProjectile
 extends Area3D
 
 signal impact_requested(projectile: SkillProjectile, target: Node3D)
+signal return_completed(projectile: SkillProjectile)
+signal remnant_requested(projectile: SkillProjectile, world_position: Vector3)
 signal released(projectile: SkillProjectile)
 signal event_fired(message: String, event_color: Color)
 
@@ -21,10 +23,12 @@ var _active: bool = false
 var _trail_cooldown: float = 0.0
 var _accent_cooldown: float = 0.0
 var _current_speed: float = 0.0
-var _bounces_remaining: int = 0
+var _returning: bool = false
+var _remnant_cooldown: float = 0.0
 var _mesh_instance: MeshInstance3D
 var _material: StandardMaterial3D
 var _skill_sprite: AnimatedSprite3D
+var _collision_shape: SphereShape3D
 
 
 func _ready() -> void:
@@ -53,12 +57,13 @@ func activate(
     direction = new_direction.normalized()
     global_position = origin
     _lifetime_remaining = definition.projectile_lifetime
-    _remaining_hits = 1 + definition.pierce_count + definition.bounce_count
-    _bounces_remaining = definition.bounce_count
+    _remaining_hits = 1 + definition.pierce_count
+    _returning = false
     _current_speed = definition.projectile_speed
     _hit_ids.clear()
     _trail_cooldown = 0.0
     _accent_cooldown = 0.0
+    _remnant_cooldown = 0.0
     _active = true
     visible = true
     monitoring = true
@@ -67,6 +72,10 @@ func activate(
     if _material != null:
         _material.albedo_color = definition.color
         _material.emission = definition.color
+    if _collision_shape != null:
+        _collision_shape.radius = 0.3 * maxf(definition.size_multiplier, definition.width_multiplier)
+    if _mesh_instance != null:
+        _mesh_instance.scale = Vector3.ONE * definition.size_multiplier
     _configure_skill_sprite()
 
 
@@ -97,33 +106,19 @@ func set_visual_effects_enabled(enabled: bool) -> void:
         else:
             _skill_sprite.stop()
     if _mesh_instance != null:
-        _mesh_instance.scale = Vector3.ONE * 0.46 if _has_skill_identity_vfx() else Vector3.ONE
+        var identity_scale := 0.46 if _has_skill_identity_vfx() else 1.0
+        _mesh_instance.scale = Vector3.ONE * identity_scale * (definition.size_multiplier if definition != null else 1.0)
 
 
 func resolve_impact(target: Node3D) -> void:
     if not _active:
         return
-    var bounced := false
-    if _bounces_remaining > 0:
-        var next_target := _find_nearest_target(global_position, 10.0, _hit_ids)
-        if next_target != null:
-            var bounce_direction := next_target.global_position - global_position
-            bounce_direction.y = 0.0
-            if bounce_direction.length_squared() > 0.01:
-                direction = bounce_direction.normalized()
-                _bounces_remaining -= 1
-                bounced = true
-                COMBAT_VFX.spawn_bolt(
-                    get_tree().current_scene,
-                    global_position,
-                    next_target.global_position + Vector3.UP,
-                    definition.color
-                )
+    if _returning:
+        global_position += direction * 0.35
+        return
     _remaining_hits -= 1
     if _remaining_hits <= 0:
-        _expire(true)
-    elif definition.bounce_count > 0 and not bounced and definition.pierce_count <= 0:
-        _expire(true)
+        _begin_return_or_expire(true)
     else:
         global_position += direction * 0.35
 
@@ -133,9 +128,22 @@ func _physics_process(delta: float) -> void:
         return
     _lifetime_remaining -= delta
     if _lifetime_remaining <= 0.0:
-        _expire(false)
-        return
-    if definition.homing_strength > 0.0:
+        _begin_return_or_expire(false)
+        if not _active:
+            return
+    if _returning:
+        if not is_instance_valid(source):
+            _expire(false)
+            return
+        var return_target := source.global_position + Vector3.UP * 1.0
+        var return_offset := return_target - global_position
+        return_offset.y = 0.0
+        if return_offset.length() <= 0.65:
+            return_completed.emit(self)
+            _expire(false)
+            return
+        direction = return_offset.normalized()
+    elif definition.homing_strength > 0.0:
         var target := _find_nearest_target(global_position, INF, _hit_ids)
         if target != null:
             var desired := target.global_position - global_position
@@ -148,13 +156,16 @@ func _physics_process(delta: float) -> void:
     if definition.rotation_speed != 0.0:
         direction = direction.rotated(Vector3.UP, definition.rotation_speed * delta).normalized()
     _update_skill_sprite_rotation()
-    _current_speed += definition.projectile_acceleration * delta
     var previous_position := global_position
     global_position += direction * _current_speed * delta
     _trail_cooldown -= delta
     if visual_effects_enabled and _trail_cooldown <= 0.0:
         _trail_cooldown = 0.055
         COMBAT_VFX.spawn_projectile_trail(get_tree().current_scene, previous_position, definition.color, 0.19)
+    _remnant_cooldown -= delta
+    if definition.remnant_enabled and _remnant_cooldown <= 0.0:
+        _remnant_cooldown = maxf(definition.remnant_tick_interval, 0.12)
+        remnant_requested.emit(self, previous_position)
     _accent_cooldown -= delta
     if visual_effects_enabled and _accent_cooldown <= 0.0:
         _accent_cooldown = 0.13
@@ -218,6 +229,16 @@ func _expire(show_effect: bool) -> void:
     deactivate()
 
 
+func _begin_return_or_expire(show_effect: bool) -> void:
+    if definition != null and definition.return_enabled and not _returning and is_instance_valid(source):
+        _returning = true
+        _lifetime_remaining = definition.projectile_lifetime * definition.return_speed_multiplier
+        _current_speed = definition.projectile_speed * definition.return_speed_multiplier
+        _remaining_hits = 1 + definition.pierce_count
+        return
+    _expire(show_effect)
+
+
 func _build_visual() -> void:
     _mesh_instance = MeshInstance3D.new()
     var sphere := SphereMesh.new()
@@ -230,9 +251,9 @@ func _build_visual() -> void:
     _mesh_instance.material_override = _material
     add_child(_mesh_instance)
     var collision := CollisionShape3D.new()
-    var shape := SphereShape3D.new()
-    shape.radius = 0.3
-    collision.shape = shape
+    _collision_shape = SphereShape3D.new()
+    _collision_shape.radius = 0.3
+    collision.shape = _collision_shape
     add_child(collision)
 
 
@@ -245,7 +266,7 @@ func _configure_skill_sprite() -> void:
             _skill_sprite.stop()
             _skill_sprite.visible = false
             _skill_sprite.sprite_frames = null
-        _mesh_instance.scale = Vector3.ONE
+        _mesh_instance.scale = Vector3.ONE * definition.size_multiplier
         return
     _ensure_skill_sprite()
     _skill_sprite.sprite_frames = frames
@@ -257,7 +278,7 @@ func _configure_skill_sprite() -> void:
     )
     _skill_sprite.frame = 0
     _skill_sprite.visible = true
-    _mesh_instance.scale = Vector3.ONE * 0.46
+    _mesh_instance.scale = Vector3.ONE * 0.46 * definition.size_multiplier
     _update_skill_sprite_rotation()
     if _skill_sprite.visible:
         _skill_sprite.play(&"default")

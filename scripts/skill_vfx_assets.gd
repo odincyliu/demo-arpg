@@ -27,13 +27,13 @@ static func get_projectile_frames(active_skill_id: StringName) -> SpriteFrames:
         return _frame_cache[cache_key] as SpriteFrames
     var frames: SpriteFrames
     match active_skill_id:
-        &"fireball":
+        &"flame_orb":
             frames = _build_sequence(FIREBALL_FOLDER, 28, 32.0, true)
-        &"thunder_orb":
+        &"chain_lightning":
             frames = _build_atlas_sequence(LIGHTNING_ATLAS_PATH, 4, 2, 8, 22.0, true)
-        &"blade_wave":
+        &"shockwave", &"returning_blade":
             frames = _build_sequence(BLADE_WAVE_FOLDER, 6, 28.0, true)
-        &"summon_core":
+        &"summon":
             frames = _build_single_frame(KENNEY_MAGIC_CORE)
         _:
             return null
@@ -47,13 +47,13 @@ static func get_cast_frames(active_skill_id: StringName) -> SpriteFrames:
         return _frame_cache[cache_key] as SpriteFrames
     var frames: SpriteFrames
     match active_skill_id:
-        &"ice_nova":
+        &"frost_nova":
             frames = _build_sequence(ICE_NOVA_FOLDER, 19, 30.0, false)
-        &"thunder_orb":
+        &"chain_lightning":
             frames = _build_atlas_sequence(LIGHTNING_ATLAS_PATH, 4, 2, 8, 24.0, false)
-        &"blade_wave":
+        &"shockwave", &"returning_blade":
             frames = _build_sequence(BLADE_WAVE_FOLDER, 6, 28.0, false)
-        &"heavy_slash":
+        &"earthbreaker":
             frames = _build_sequence(HEAVY_SLASH_FOLDER, 6, 25.0, false)
         _:
             return null
@@ -63,13 +63,13 @@ static func get_cast_frames(active_skill_id: StringName) -> SpriteFrames:
 
 static func get_projectile_pixel_size(active_skill_id: StringName) -> float:
     match active_skill_id:
-        &"fireball":
+        &"flame_orb":
             return 0.007
-        &"thunder_orb":
+        &"chain_lightning":
             return 0.0058
-        &"blade_wave":
+        &"shockwave", &"returning_blade":
             return 0.015
-        &"summon_core":
+        &"summon":
             return 0.004
     return 0.005
 
@@ -78,7 +78,7 @@ static func get_projectile_modulate(
         active_skill_id: StringName,
         skill_color: Color
 ) -> Color:
-    if active_skill_id in [&"thunder_orb", &"summon_core"]:
+    if active_skill_id in [&"chain_lightning", &"summon"]:
         return skill_color.lightened(0.1)
     return Color.WHITE
 
