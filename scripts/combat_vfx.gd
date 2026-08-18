@@ -3,6 +3,7 @@ extends RefCounted
 
 
 const SKILL_VFX_ASSETS := preload("res://scripts/skill_vfx_assets.gd")
+const SHADOW_STYLE := preload("res://scripts/shadow_vfx_style.gd")
 
 
 static func spawn_cast_layers(
@@ -94,6 +95,35 @@ static func _spawn_skill_identity(
         direction: Vector3
 ) -> void:
     match definition.active_skill_id:
+        &"slash":
+            _spawn_animated_skill_sprite(
+                parent,
+                SKILL_VFX_ASSETS.get_cast_frames(definition.active_skill_id),
+                world_position + direction * 0.9 + Vector3.UP * 0.82,
+                SHADOW_STYLE.BODY,
+                0.027,
+                0.5,
+                1.08,
+                0.3,
+                false,
+                direction,
+                &"vfx_skill_identity",
+                -0.16,
+                &"body"
+            )
+            var slash_side := Vector3(-direction.z, 0.0, direction.x)
+            _spawn_streak(parent, world_position - slash_side * 0.75 + Vector3.UP, world_position + slash_side * 0.9 + direction * 1.6 + Vector3.UP, SHADOW_STYLE.BODY, 0.12, 0.24, &"vfx_skill_identity", &"body")
+            _spawn_streak(parent, world_position + slash_side * 0.65 + Vector3.UP * 1.06, world_position - slash_side * 0.8 + direction * 1.4 + Vector3.UP * 1.06, SHADOW_STYLE.ASH, 0.055, 0.18, &"vfx_skill_identity", &"ash")
+        &"whirlblade":
+            _spawn_orbit(parent, world_position + Vector3.UP * 0.72, SHADOW_STYLE.BODY, 8, 1.5 * definition.size_multiplier, 0.42, &"vfx_skill_identity", &"body")
+            _spawn_ring(parent, world_position, SHADOW_STYLE.BODY, 1.55 * definition.size_multiplier, 0.36, &"vfx_skill_identity", &"body")
+            _spawn_ring(parent, world_position + Vector3.UP * 0.08, SHADOW_STYLE.RIM, 1.2 * definition.size_multiplier, 0.24, &"vfx_skill_identity", &"rim")
+            _spawn_motes(parent, world_position, SHADOW_STYLE.ASH, 8, 1.25, 0.34, &"vfx_skill_identity", true, &"ash")
+        &"dash_strike":
+            var dash_side := Vector3(-direction.z, 0.0, direction.x)
+            for offset: float in [-0.4, 0.0, 0.4]:
+                _spawn_streak(parent, world_position + dash_side * offset - direction * 0.8 + Vector3.UP, world_position + dash_side * offset + direction * 2.6 + Vector3.UP, SHADOW_STYLE.BODY, 0.09, 0.28, &"vfx_skill_identity", &"body")
+            _spawn_streak(parent, world_position - dash_side + direction * 2.2 + Vector3.UP, world_position + dash_side + direction * 2.7 + Vector3.UP, SHADOW_STYLE.RIM, 0.05, 0.19, &"vfx_skill_identity", &"rim")
         &"flame_orb":
             _spawn_texture_burst(
                 parent,
@@ -167,7 +197,7 @@ static func _spawn_skill_identity(
                 &"vfx_skill_identity",
                 -0.28
             )
-        &"shockwave", &"returning_blade":
+        &"shockwave":
             _spawn_animated_skill_sprite(
                 parent,
                 SKILL_VFX_ASSETS.get_cast_frames(definition.active_skill_id),
@@ -180,7 +210,8 @@ static func _spawn_skill_identity(
                 false,
                 direction,
                 &"vfx_skill_identity",
-                0.0
+                0.0,
+                &"body"
             )
             _spawn_texture_burst(
                 parent,
@@ -194,8 +225,21 @@ static func _spawn_skill_identity(
                 false,
                 direction,
                 &"vfx_skill_identity",
-                0.0
+                0.0,
+                &"ash"
             )
+        &"ground_burst":
+            _spawn_ring(parent, world_position, SHADOW_STYLE.BODY, definition.area_radius * 0.78, 0.34, &"vfx_skill_identity", &"body")
+            _spawn_radial_lines(parent, world_position, SHADOW_STYLE.RIM, 10, definition.area_radius * 0.72, &"vfx_skill_identity")
+            _spawn_shards(parent, world_position, SHADOW_STYLE.BODY, 12, definition.area_radius * 0.72, &"vfx_skill_identity", &"body")
+            _spawn_cloud(parent, world_position, SHADOW_STYLE.SHADOW, 8, definition.area_radius * 0.5, &"vfx_skill_identity", &"shadow")
+        &"arrow_shot":
+            _spawn_streak(parent, world_position + Vector3.UP * 0.78, world_position + direction * 2.5 + Vector3.UP * 0.78, SHADOW_STYLE.BODY, 0.075, 0.22, &"vfx_skill_identity", &"body")
+            _spawn_streak(parent, world_position + direction * 0.2 + Vector3.UP * 0.82, world_position + direction * 2.0 + Vector3.UP * 0.82, SHADOW_STYLE.RIM, 0.025, 0.16, &"vfx_skill_identity", &"rim")
+        &"frost_lance":
+            _spawn_streak(parent, world_position + Vector3.UP * 0.8, world_position + direction * 2.8 + Vector3.UP * 0.8, SHADOW_STYLE.BODY, 0.11, 0.24, &"vfx_skill_identity", &"body")
+            _spawn_streak(parent, world_position + direction * 0.3 + Vector3.UP * 0.82, world_position + direction * 2.55 + Vector3.UP * 0.82, SHADOW_STYLE.RIM, 0.035, 0.18, &"vfx_skill_identity", &"rim")
+            _spawn_shards(parent, world_position + direction * 1.35, SHADOW_STYLE.ASH, 5, 0.55, &"vfx_skill_identity", &"ash")
         &"summon":
             _spawn_texture_burst(
                 parent,
@@ -239,35 +283,19 @@ static func _spawn_skill_identity(
                 &"vfx_skill_identity",
                 0.5
             )
-        &"earthbreaker":
-            _spawn_animated_skill_sprite(
-                parent,
-                SKILL_VFX_ASSETS.get_cast_frames(definition.active_skill_id),
-                world_position + direction * 1.12 + Vector3.UP * 0.88,
-                Color.WHITE,
-                0.027,
-                0.62,
-                1.16,
-                0.29,
-                false,
-                direction,
-                &"vfx_skill_identity",
-                0.0
-            )
-            _spawn_texture_burst(
-                parent,
-                SKILL_VFX_ASSETS.KENNEY_SLASH,
-                world_position + direction * 1.2 + Vector3.UP * 0.84,
-                Color(1.35, 1.55, 1.9, 1.0),
-                0.011,
-                0.42,
-                1.1,
-                0.3,
-                false,
-                direction,
-                &"vfx_skill_identity",
-                0.0
-            )
+        &"meteor":
+            _spawn_ring(parent, world_position, SHADOW_STYLE.BODY, definition.area_radius * 0.9, 0.55, &"vfx_skill_identity", &"body")
+            _spawn_ring(parent, world_position + Vector3.UP * 0.05, SHADOW_STYLE.RIM, definition.area_radius * 0.62, 0.42, &"vfx_skill_identity", &"rim")
+            _spawn_cloud(parent, world_position + Vector3.UP * 2.8, SHADOW_STYLE.SHADOW, 9, 1.4, &"vfx_skill_identity", &"shadow")
+            _spawn_streak(parent, world_position + Vector3.UP * 5.0 - direction * 1.2, world_position + Vector3.UP * 0.5, SHADOW_STYLE.BODY, 0.28, 0.6, &"vfx_skill_identity", &"body")
+        &"void_beam":
+            _spawn_streak(parent, world_position + Vector3.UP * 0.82, world_position + direction * definition.target_range + Vector3.UP * 0.82, SHADOW_STYLE.BODY, 0.18 * definition.width_multiplier, 0.16, &"vfx_skill_identity", &"body")
+            _spawn_streak(parent, world_position + Vector3.UP * 0.83, world_position + direction * definition.target_range + Vector3.UP * 0.83, SHADOW_STYLE.RIM, 0.04 * definition.width_multiplier, 0.12, &"vfx_skill_identity", &"rim")
+            _spawn_motes(parent, world_position + direction * 1.1, SHADOW_STYLE.ASH, 6, 0.7, 0.18, &"vfx_skill_identity", false, &"ash")
+        &"void_rift":
+            _spawn_ring(parent, world_position, SHADOW_STYLE.BODY, definition.area_radius, 0.58, &"vfx_skill_identity", &"body")
+            _spawn_orbit(parent, world_position + Vector3.UP * 0.18, SHADOW_STYLE.SHADOW, 10, definition.area_radius * 0.68, 0.62, &"vfx_skill_identity", &"shadow")
+            _spawn_motes(parent, world_position, SHADOW_STYLE.BODY, 12, definition.area_radius * 0.75, 0.58, &"vfx_skill_identity", true, &"body")
         _:
             _spawn_ring(parent, world_position, definition.color, 0.9 + definition.size_multiplier * 0.35, 0.28, &"vfx_skill_identity")
             _spawn_motes(
@@ -289,6 +317,12 @@ static func _spawn_skill_hit_identity(
         direction: Vector3
 ) -> void:
     match definition.active_skill_id:
+        &"slash", &"dash_strike":
+            _spawn_texture_burst(parent, SKILL_VFX_ASSETS.KENNEY_SLASH, target_position + Vector3.UP * 0.72, SHADOW_STYLE.BODY, 0.0042, 0.32, 0.9, 0.22, false, direction, &"vfx_skill_identity", 0.28, &"body")
+            _spawn_cross(parent, target_position + Vector3.UP * 0.46, SHADOW_STYLE.RIM, 0.7 * definition.size_multiplier, &"vfx_skill_identity")
+        &"whirlblade":
+            _spawn_ring(parent, target_position, SHADOW_STYLE.BODY, 0.78 * definition.size_multiplier, 0.22, &"vfx_skill_identity", &"body")
+            _spawn_motes(parent, target_position, SHADOW_STYLE.ASH, 6, 0.75, 0.24, &"vfx_skill_identity", false, &"ash")
         &"flame_orb":
             _spawn_texture_burst(
                 parent,
@@ -333,7 +367,7 @@ static func _spawn_skill_hit_identity(
                 &"vfx_skill_identity",
                 -0.22
             )
-        &"shockwave", &"returning_blade":
+        &"shockwave":
             _spawn_texture_burst(
                 parent,
                 SKILL_VFX_ASSETS.KENNEY_SLASH,
@@ -346,8 +380,22 @@ static func _spawn_skill_hit_identity(
                 false,
                 direction,
                 &"vfx_skill_identity",
-                0.4
+                0.4,
+                &"body"
             )
+            _spawn_streak(parent, target_position - direction * 0.8 + Vector3.UP * 0.65, target_position + direction * 0.8 + Vector3.UP * 0.65, SHADOW_STYLE.RIM, 0.055, 0.18, &"vfx_skill_identity", &"rim")
+        &"ground_burst":
+            _spawn_shards(parent, target_position, SHADOW_STYLE.BODY, 9, 1.0 * definition.size_multiplier, &"vfx_skill_identity", &"body")
+            _spawn_cloud(parent, target_position, SHADOW_STYLE.SHADOW, 7, 0.85, &"vfx_skill_identity", &"shadow")
+        &"arrow_shot":
+            _spawn_streak(parent, target_position - direction * 0.7 + Vector3.UP * 0.6, target_position + direction * 0.45 + Vector3.UP * 0.6, SHADOW_STYLE.BODY, 0.08, 0.16, &"vfx_skill_identity", &"body")
+            _spawn_cross(parent, target_position + Vector3.UP * 0.42, SHADOW_STYLE.FLASH, 0.28, &"vfx_skill_identity")
+        &"frost_lance":
+            _spawn_shards(parent, target_position, SHADOW_STYLE.BODY, 8, 0.9, &"vfx_skill_identity", &"body")
+            _spawn_ring(parent, target_position, SHADOW_STYLE.RIM, 0.62, 0.18, &"vfx_skill_identity", &"rim")
+        &"frost_nova":
+            _spawn_shards(parent, target_position, SHADOW_STYLE.BODY, 7, 0.78, &"vfx_skill_identity", &"body")
+            _spawn_ring(parent, target_position, SHADOW_STYLE.RIM, 0.72, 0.2, &"vfx_skill_identity", &"rim")
         &"summon":
             _spawn_texture_burst(
                 parent,
@@ -363,21 +411,16 @@ static func _spawn_skill_hit_identity(
                 &"vfx_skill_identity",
                 0.65
             )
-        &"earthbreaker":
-            _spawn_texture_burst(
-                parent,
-                SKILL_VFX_ASSETS.KENNEY_FLARE,
-                target_position + Vector3.UP * 0.78,
-                Color("f4f8ff"),
-                0.0032,
-                0.3,
-                0.76,
-                0.18,
-                false,
-                direction,
-                &"vfx_skill_identity",
-                0.18
-            )
+        &"meteor":
+            _spawn_ring(parent, target_position, SHADOW_STYLE.BODY, definition.area_radius, 0.34, &"vfx_skill_identity", &"body")
+            _spawn_motes(parent, target_position, SHADOW_STYLE.BODY, 16, definition.area_radius * 0.8, 0.42, &"vfx_skill_identity", true, &"body")
+            _spawn_shards(parent, target_position, SHADOW_STYLE.ASH, 12, definition.area_radius * 0.68, &"vfx_skill_identity", &"ash")
+        &"void_beam":
+            _spawn_cross(parent, target_position + Vector3.UP * 0.52, SHADOW_STYLE.FLASH, 0.48, &"vfx_skill_identity")
+            _spawn_cloud(parent, target_position, SHADOW_STYLE.SHADOW, 5, 0.62, &"vfx_skill_identity", &"shadow")
+        &"void_rift":
+            _spawn_ring(parent, target_position, SHADOW_STYLE.BODY, 0.65, 0.22, &"vfx_skill_identity", &"body")
+            _spawn_motes(parent, target_position, SHADOW_STYLE.SHADOW, 6, 0.65, 0.28, &"vfx_skill_identity", true, &"shadow")
         _:
             _spawn_cross(parent, target_position + Vector3.UP * 0.55, definition.color.lightened(0.18), 0.58 * definition.size_multiplier, &"vfx_skill_identity")
             _spawn_ring(parent, target_position, definition.color, 0.48 * definition.size_multiplier, 0.18, &"vfx_skill_identity")
@@ -600,6 +643,65 @@ static func spawn_pulse(
     tween.tween_callback(Callable(pulse, "queue_free"))
 
 
+static func spawn_persistent_field(
+        parent: Node,
+        definition: SkillDefinition,
+        world_position: Vector3,
+        radius: float,
+        duration: float,
+        is_remnant: bool = false
+) -> Node3D:
+    if parent == null or definition == null:
+        return null
+    var root := Node3D.new()
+    parent.add_child(root)
+    _tag_vfx(root, &"vfx_persistent")
+    root.add_to_group("vfx_skill_identity")
+    root.set_meta("vfx_profile", definition.active_skill_id)
+    root.global_position = Vector3(world_position.x, maxf(world_position.y, 0.04), world_position.z)
+
+    var pool := MeshInstance3D.new()
+    var pool_mesh := CylinderMesh.new()
+    pool_mesh.top_radius = 1.0
+    pool_mesh.bottom_radius = 0.84
+    pool_mesh.height = 0.035
+    pool.mesh = pool_mesh
+    pool.scale = Vector3(radius, 1.0, radius)
+    pool.material_override = SHADOW_STYLE.mesh_material(&"body", 0.76, 0.025, 0.52)
+    root.add_child(pool)
+
+    var rim := MeshInstance3D.new()
+    var rim_mesh := TorusMesh.new()
+    rim_mesh.inner_radius = 0.78
+    rim_mesh.outer_radius = 0.94
+    rim_mesh.rings = 12
+    rim_mesh.ring_segments = 24
+    rim.mesh = rim_mesh
+    rim.scale = Vector3.ONE * radius
+    rim.material_override = SHADOW_STYLE.standard_material(&"rim", 0.48, 0.32)
+    root.add_child(rim)
+
+    if not is_remnant:
+        for index: int in 7:
+            var tendril := MeshInstance3D.new()
+            var tendril_mesh := PrismMesh.new()
+            tendril_mesh.size = Vector3(0.08, randf_range(0.45, 0.95), 0.12)
+            tendril.mesh = tendril_mesh
+            tendril.material_override = SHADOW_STYLE.mesh_material(&"shadow", 0.8, 0.055, 0.38)
+            var angle := TAU * float(index) / 7.0
+            tendril.position = Vector3(cos(angle), 0.35, sin(angle)) * radius * 0.55
+            tendril.rotation.y = -angle
+            root.add_child(tendril)
+
+    var motion := root.create_tween()
+    motion.set_parallel(true)
+    motion.tween_property(root, "rotation:y", root.rotation.y + TAU * (0.65 if is_remnant else 1.4), duration)
+    motion.tween_property(root, "scale", Vector3.ONE * 0.82, duration)
+    motion.set_parallel(false)
+    motion.tween_callback(Callable(root, "queue_free"))
+    return root
+
+
 static func spawn_bolt(
         parent: Node,
         from_position: Vector3,
@@ -680,10 +782,8 @@ static func spawn_chain_lightning(
         points.append(from_position.lerp(to_position, weight) + jitter)
     points.append(to_position)
 
-    var outer_material := _transparent_material(color.lightened(0.08), 0.72)
-    outer_material.emission_energy_multiplier = 3.2
-    var core_material := _transparent_material(Color("e8fbff"), 0.98)
-    core_material.emission_energy_multiplier = 4.6
+    var outer_material := SHADOW_STYLE.standard_material(&"body", 0.82)
+    var core_material := SHADOW_STYLE.standard_material(&"rim", 0.98, 1.8)
     for segment_index: int in segment_count:
         _add_lightning_segment(root, points[segment_index], points[segment_index + 1], outer_material, 0.105)
         _add_lightning_segment(root, points[segment_index], points[segment_index + 1], core_material, 0.034)
@@ -774,9 +874,9 @@ static func spawn_damage_number(
     label.text = "%s%.0f" % ["CRIT " if critical else "", amount]
     label.font_size = 64 if critical else 48
     label.outline_size = 12 if critical else 9
-    label.outline_modulate = Color(0.015, 0.02, 0.035, 0.98)
+    label.outline_modulate = Color(0.015, 0.015, 0.015, 0.98)
     label.pixel_size = 0.012
-    label.modulate = Color("fff0a0") if critical else color.lightened(0.52)
+    label.modulate = SHADOW_STYLE.FLASH if critical else SHADOW_STYLE.RIM
     label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
     label.no_depth_test = true
     parent.add_child(label)
@@ -851,6 +951,70 @@ static func spawn_projectile_trail(
     tween.tween_callback(Callable(ghost, "queue_free"))
 
 
+static func spawn_core_projectile_trail(
+        parent: Node,
+        definition: SkillDefinition,
+        world_position: Vector3,
+        direction: Vector3,
+        size: float = 0.22
+) -> void:
+    if parent == null or definition == null:
+        return
+    match definition.active_skill_id:
+        &"arrow_shot":
+            _spawn_streak(parent, world_position - direction * 0.65, world_position + direction * 0.08, SHADOW_STYLE.BODY, 0.035, 0.12, &"vfx_projectile_trail", &"body")
+        &"frost_lance":
+            _spawn_streak(parent, world_position - direction * 0.58, world_position + direction * 0.06, SHADOW_STYLE.ASH, 0.055, 0.14, &"vfx_projectile_trail", &"ash")
+        &"shockwave":
+            var side := Vector3(-direction.z, 0.0, direction.x) * 0.62 * definition.width_multiplier
+            _spawn_streak(parent, world_position - side + Vector3.UP * 0.18, world_position + side + Vector3.UP * 0.18, SHADOW_STYLE.BODY, 0.08, 0.14, &"vfx_projectile_trail", &"body")
+        &"flame_orb":
+            _spawn_motes(parent, world_position, SHADOW_STYLE.SHADOW, 2, 0.24, 0.16, &"vfx_projectile_trail", true, &"shadow")
+        _:
+            spawn_projectile_trail(parent, world_position, definition.color, size)
+
+
+static func spawn_core_end(
+        parent: Node,
+        definition: SkillDefinition,
+        world_position: Vector3,
+        direction: Vector3
+) -> void:
+    if parent == null or definition == null:
+        return
+    match definition.active_skill_id:
+        &"flame_orb":
+            _spawn_skill_hit_identity(parent, definition, world_position, direction)
+        &"shockwave":
+            var side := Vector3(-direction.z, 0.0, direction.x) * definition.width_multiplier
+            _spawn_streak(parent, world_position - side + Vector3.UP * 0.35, world_position + side + Vector3.UP * 0.35, SHADOW_STYLE.ASH, 0.065, 0.22, &"vfx_skill_identity", &"ash")
+            _spawn_motes(parent, world_position, SHADOW_STYLE.SHADOW, 7, 0.9, 0.28, &"vfx_skill_identity", true, &"shadow")
+        &"frost_lance":
+            _spawn_shards(parent, world_position, SHADOW_STYLE.BODY, 7, 0.72, &"vfx_skill_identity", &"body")
+            _spawn_ring(parent, world_position, SHADOW_STYLE.RIM, 0.5, 0.18, &"vfx_skill_identity", &"rim")
+        &"arrow_shot":
+            _spawn_cross(parent, world_position + Vector3.UP * 0.2, SHADOW_STYLE.RIM, 0.26, &"vfx_skill_identity")
+            _spawn_motes(parent, world_position, SHADOW_STYLE.ASH, 4, 0.38, 0.18, &"vfx_skill_identity", false, &"ash")
+        _:
+            _spawn_ring(parent, world_position, SHADOW_STYLE.RIM, 0.42, 0.2, &"vfx_skill_identity", &"rim")
+
+
+static func spawn_channel_end(
+        parent: Node,
+        definition: SkillDefinition,
+        origin: Vector3,
+        target_position: Vector3
+) -> void:
+    if parent == null or definition == null:
+        return
+    if definition.active_skill_id == &"void_beam":
+        _spawn_cross(parent, target_position + Vector3.UP * 0.45, SHADOW_STYLE.FLASH, 0.52, &"vfx_skill_identity")
+        _spawn_cloud(parent, target_position, SHADOW_STYLE.SHADOW, 7, 0.68, &"vfx_skill_identity", &"shadow")
+    else:
+        _spawn_ring(parent, origin, SHADOW_STYLE.BODY, definition.area_radius * 0.9, 0.3, &"vfx_skill_identity", &"body")
+        _spawn_motes(parent, origin, SHADOW_STYLE.ASH, 9, definition.area_radius * 0.55, 0.34, &"vfx_skill_identity", true, &"ash")
+
+
 static func spawn_dash_ghost(
         parent: Node,
         world_position: Vector3,
@@ -880,13 +1044,43 @@ static func spawn_dash_ghost(
     tween.tween_callback(Callable(ghost, "queue_free"))
 
 
+static func spawn_dash_sequence(
+        parent: Node,
+        from_position: Vector3,
+        to_position: Vector3,
+        rotation_y: float
+) -> void:
+    if parent == null:
+        return
+    var direction := to_position - from_position
+    direction.y = 0.0
+    if direction.length_squared() < 0.01:
+        return
+    direction = direction.normalized()
+    var side := Vector3(-direction.z, 0.0, direction.x)
+    _spawn_streak(parent, from_position + Vector3.UP, to_position + Vector3.UP, SHADOW_STYLE.BODY, 0.13, 0.28, &"vfx_skill_identity", &"body")
+    for index: int in 4:
+        spawn_dash_ghost(parent, from_position.lerp(to_position, float(index + 1) / 5.0), rotation_y, SHADOW_STYLE.SHADOW)
+    _spawn_streak(parent, to_position - side * 1.25 + Vector3.UP, to_position + side * 1.25 + Vector3.UP, SHADOW_STYLE.RIM, 0.07, 0.22, &"vfx_skill_identity", &"rim")
+    _spawn_cross(parent, to_position + Vector3.UP * 0.7, SHADOW_STYLE.FLASH, 0.62, &"vfx_skill_identity")
+
+
+static func spawn_minion_dissolve(parent: Node, world_position: Vector3) -> void:
+    if parent == null:
+        return
+    _spawn_ring(parent, world_position, SHADOW_STYLE.RIM, 0.62, 0.28, &"vfx_skill_identity", &"rim")
+    _spawn_motes(parent, world_position, SHADOW_STYLE.SHADOW, 9, 0.75, 0.32, &"vfx_skill_identity", true, &"shadow")
+    _spawn_cloud(parent, world_position, SHADOW_STYLE.BODY, 5, 0.52, &"vfx_skill_identity", &"body")
+
+
 static func _spawn_ring(
         parent: Node,
         world_position: Vector3,
         color: Color,
         radius: float,
         duration: float,
-        category_group: StringName
+        category_group: StringName,
+        tone_role: StringName = &"rim"
 ) -> void:
     var ring := MeshInstance3D.new()
     var torus := TorusMesh.new()
@@ -895,7 +1089,7 @@ static func _spawn_ring(
     torus.rings = 12
     torus.ring_segments = 24
     ring.mesh = torus
-    var material := _transparent_material(color, 0.82)
+    var material := SHADOW_STYLE.standard_material(tone_role, 0.82)
     ring.material_override = material
     ring.scale = Vector3.ONE * 0.12
     parent.add_child(ring)
@@ -919,7 +1113,8 @@ static func _spawn_streak(
         color: Color,
         width: float,
         duration: float,
-        category_group: StringName
+        category_group: StringName,
+        tone_role: StringName = &"rim"
 ) -> void:
     var delta := to_position - from_position
     var length := delta.length()
@@ -932,7 +1127,7 @@ static func _spawn_streak(
     cylinder.bottom_radius = width
     cylinder.height = length
     streak.mesh = cylinder
-    var material := _transparent_material(color, 0.88)
+    var material := SHADOW_STYLE.standard_material(tone_role, 0.88)
     streak.material_override = material
     parent.add_child(streak)
     _tag_vfx(streak, category_group)
@@ -1014,7 +1209,8 @@ static func _spawn_orbit(
         count: int,
         radius: float,
         duration: float,
-        category_group: StringName
+        category_group: StringName,
+        tone_role: StringName = &"rim"
 ) -> void:
     var orbit := Node3D.new()
     parent.add_child(orbit)
@@ -1028,7 +1224,7 @@ static func _spawn_orbit(
         sphere.radius = 0.14
         sphere.height = 0.28
         mote.mesh = sphere
-        mote.material_override = _transparent_material(color, 0.9)
+        mote.material_override = SHADOW_STYLE.standard_material(tone_role, 0.9)
         mote.position = Vector3(cos(angle), 0.0, sin(angle)) * radius
         orbit.add_child(mote)
 
@@ -1050,7 +1246,8 @@ static func _spawn_motes(
         radius: float,
         duration: float,
         category_group: StringName,
-        rise: bool
+        rise: bool,
+        tone_role: StringName = &"ash"
 ) -> void:
     var root := Node3D.new()
     parent.add_child(root)
@@ -1064,7 +1261,7 @@ static func _spawn_motes(
         sphere.radius = randf_range(0.055, 0.13)
         sphere.height = sphere.radius * 2.0
         mote.mesh = sphere
-        var material := _transparent_material(color.lightened(randf_range(0.0, 0.22)), 0.9)
+        var material := SHADOW_STYLE.standard_material(tone_role, 0.9)
         mote.material_override = material
         mote.position = Vector3(randf_range(-0.12, 0.12), randf_range(0.2, 0.8), randf_range(-0.12, 0.12))
         root.add_child(mote)
@@ -1091,7 +1288,8 @@ static func _spawn_cloud(
         color: Color,
         count: int,
         radius: float,
-        category_group: StringName
+        category_group: StringName,
+        tone_role: StringName = &"shadow"
 ) -> void:
     var root := Node3D.new()
     parent.add_child(root)
@@ -1106,7 +1304,7 @@ static func _spawn_cloud(
         sphere.radius = randf_range(0.18, 0.34)
         sphere.height = sphere.radius * 2.0
         cloud.mesh = sphere
-        var material := _transparent_material(color, 0.48)
+        var material := SHADOW_STYLE.standard_material(tone_role, 0.48)
         cloud.material_override = material
         cloud.position = Vector3(0.0, randf_range(0.35, 1.1), 0.0)
         cloud.scale = Vector3.ONE * 0.35
@@ -1131,7 +1329,8 @@ static func _spawn_shards(
         color: Color,
         count: int,
         radius: float,
-        category_group: StringName
+        category_group: StringName,
+        tone_role: StringName = &"body"
 ) -> void:
     var root := Node3D.new()
     parent.add_child(root)
@@ -1145,7 +1344,7 @@ static func _spawn_shards(
         var box := BoxMesh.new()
         box.size = Vector3(0.08, randf_range(0.35, 0.7), 0.12)
         shard.mesh = box
-        var material := _transparent_material(color, 0.92)
+        var material := SHADOW_STYLE.standard_material(tone_role, 0.92)
         shard.material_override = material
         shard.position = Vector3(0.0, 0.65, 0.0)
         shard.rotation = Vector3(randf_range(-0.4, 0.4), angle, randf_range(-0.6, 0.6))
@@ -1177,7 +1376,8 @@ static func _spawn_animated_skill_sprite(
         horizontal: bool,
         direction: Vector3,
         category_group: StringName,
-        spin: float
+        spin: float,
+        tone_role: StringName = &"body"
 ) -> void:
     if frames == null or frames.get_frame_count(&"default") <= 0:
         return
@@ -1191,8 +1391,18 @@ static func _spawn_animated_skill_sprite(
     sprite.sprite_frames = frames
     sprite.animation = &"default"
     sprite.pixel_size = pixel_size
-    sprite.modulate = color
+    sprite.modulate = Color.WHITE
     sprite.no_depth_test = true
+    var first_texture := frames.get_frame_texture(&"default", 0)
+    var shadow_material := SHADOW_STYLE.sprite_material(first_texture, tone_role, color.a)
+    sprite.material_override = shadow_material
+    sprite.frame_changed.connect(func() -> void:
+        if is_instance_valid(sprite) and sprite.sprite_frames != null:
+            shadow_material.set_shader_parameter(
+                "source_texture",
+                sprite.sprite_frames.get_frame_texture(sprite.animation, sprite.frame)
+            )
+    )
     root.add_child(sprite)
     if horizontal:
         sprite.billboard = BaseMaterial3D.BILLBOARD_DISABLED
@@ -1233,7 +1443,8 @@ static func _spawn_texture_burst(
         horizontal: bool,
         direction: Vector3,
         category_group: StringName,
-        spin: float
+        spin: float,
+        tone_role: StringName = &"body"
 ) -> void:
     if texture == null:
         return
@@ -1246,8 +1457,9 @@ static func _spawn_texture_burst(
     var sprite := Sprite3D.new()
     sprite.texture = texture
     sprite.pixel_size = pixel_size
-    sprite.modulate = color
+    sprite.modulate = Color.WHITE
     sprite.no_depth_test = true
+    sprite.material_override = SHADOW_STYLE.sprite_material(texture, tone_role, color.a)
     root.add_child(sprite)
     if horizontal:
         sprite.billboard = BaseMaterial3D.BILLBOARD_DISABLED
@@ -1296,18 +1508,10 @@ static func _tag_vfx(node: Node, category_group: StringName) -> void:
 
 
 static func _glowing_material(color: Color) -> StandardMaterial3D:
-    var material := StandardMaterial3D.new()
-    material.albedo_color = color
-    material.emission_enabled = true
-    material.emission = color
-    material.emission_energy_multiplier = 1.8
-    material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-    return material
+    var role := &"flash" if color.get_luminance() > 0.82 else &"rim"
+    return SHADOW_STYLE.standard_material(role, color.a, 1.15)
 
 
 static func _transparent_material(color: Color, alpha: float) -> StandardMaterial3D:
-    var material := _glowing_material(color)
-    material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-    material.albedo_color.a = alpha
-    material.emission_energy_multiplier = 0.9
-    return material
+    var role := &"body" if color.get_luminance() < 0.18 else &"rim"
+    return SHADOW_STYLE.standard_material(role, alpha, 0.45 if role == &"rim" else 0.0)

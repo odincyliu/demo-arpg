@@ -5,8 +5,9 @@ config_version=5
 
 [application]
 
-config/name="Modular Six-Link Prototype"
+config/name="Modular Six-Link Shadow Prototype"
 run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]
 

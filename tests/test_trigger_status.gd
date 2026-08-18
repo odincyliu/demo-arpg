@@ -57,7 +57,7 @@ func _verify_event_triggers(
         failures: PackedStringArray
 ) -> void:
     for trigger_id: StringName in EVENT_TRIGGERS:
-        var result := TEST_UTILS.compile([&"core_rapid_slash", trigger_id, &"core_summon"])
+        var result := TEST_UTILS.compile([&"core_slash", trigger_id, &"core_summon"])
         if not result.valid:
             failures.append("%s did not compile" % trigger_id)
             continue
@@ -125,7 +125,7 @@ func _verify_return_trigger_event(
         failures: PackedStringArray
 ) -> void:
     var result := TEST_UTILS.compile([
-        &"core_returning_blade", &"trajectory_return", &"trigger_return", &"core_summon",
+        &"core_arrow_shot", &"trajectory_return", &"trigger_return", &"core_summon",
     ])
     player.set_skill_build(result.build)
     var executor := player.get_skill_executor()
