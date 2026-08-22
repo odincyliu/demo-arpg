@@ -42,6 +42,14 @@ func _test_catalog(failures: PackedStringArray) -> void:
         var result := SkillCompiler.compile_build(host)
         if not result.valid:
             failures.append("Component %s has no valid host: %s" % [component.component_id, "; ".join(result.errors)])
+            continue
+        if component.is_core() and component.tags.has(&"spell"):
+            var definition := result.compiled_build.root_core
+            if definition.target_range <= 0.0:
+                failures.append("Spell Core %s has no target range" % component.component_id)
+    var frost_nova := SkillCompiler.compile_build(_build([&"core_frost_nova"]))
+    if frost_nova.valid and frost_nova.compiled_build.root_core.origin_policy != &"source":
+        failures.append("Manual Frost Nova must originate from the caster")
 
 
 func _test_default_build(failures: PackedStringArray) -> void:

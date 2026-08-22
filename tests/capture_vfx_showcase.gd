@@ -105,7 +105,13 @@ func _populate_showcase(parent: Node3D) -> Node3D:
         elif definition.core_behavior == &"dash":
             COMBAT_VFX.spawn_dash_sequence(showcase, position + Vector3.BACK, position + Vector3.FORWARD, 0.0)
         elif definition.core_behavior == &"channel":
-            COMBAT_VFX.spawn_channel_end(showcase, definition, position, position + Vector3.FORWARD * 1.5)
+            var channel_anchor := Node3D.new()
+            showcase.add_child(channel_anchor)
+            channel_anchor.global_position = position
+            if COMBAT_VFX.spawn_channel_sustain(channel_anchor, definition) == null:
+                COMBAT_VFX.spawn_channel_end(showcase, definition, position, position + Vector3.FORWARD * 1.5)
+        elif definition.core_behavior == &"meteor":
+            COMBAT_VFX.spawn_meteor_descent(showcase, position, 1.2, definition.area_radius * 0.55)
     var thunder_definition := _compile_skill(&"core_chain_lightning")
     var thunder_position := _showcase_position(SHOWCASE_SKILLS.find(&"core_chain_lightning"))
     COMBAT_VFX.spawn_chain_lightning(

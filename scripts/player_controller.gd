@@ -6,6 +6,7 @@ signal skill_changed(build: SixLinkBuild)
 
 const SKILL_EXECUTOR_SCRIPT := preload("res://scripts/skill_executor.gd")
 const COMBAT_VFX := preload("res://scripts/combat_vfx.gd")
+const CAST_RANGE_MARGIN: float = 0.18
 
 @export var movement_speed: float = 7.0
 @export var movement_acceleration: float = 34.0
@@ -33,6 +34,8 @@ var _dash_trail_timer: float = 0.0
 var _cast_lock_remaining: float = 0.0
 var _has_move_destination: bool = false
 var _move_destination: Vector3 = Vector3.ZERO
+var _has_pending_cast_command: bool = false
+var _pending_cast_position: Vector3 = Vector3.ZERO
 var _locomotion_time: float = 0.0
 var _visual_root: Node3D
 var _locomotion_root: Node3D
@@ -60,6 +63,7 @@ func _physics_process(delta: float) -> void:
     _update_channel_state()
     _update_held_arpg_actions()
     _update_movement(delta)
+    _update_pending_cast_command()
     _update_facing(delta)
     _update_locomotion_visual(delta)
 
@@ -72,11 +76,11 @@ func _unhandled_input(event: InputEvent) -> void:
         simulate_damage()
         get_viewport().set_input_as_handled()
     elif event.is_action_pressed("cast_skill"):
-        _begin_attack_command()
+        _begin_attack_command(true)
         get_viewport().set_input_as_handled()
     elif event.is_action_pressed("move_to_cursor"):
         if Input.is_action_pressed("force_attack"):
-            _begin_attack_command()
+            _begin_attack_command(false)
         else:
             set_move_destination(_get_mouse_world_position())
         get_viewport().set_input_as_handled()
@@ -91,15 +95,43 @@ func set_skill_build(build: SixLinkBuild) -> void:
         return
     current_build = build
     current_skill = build.get_root_core()
+    _clear_pending_cast_command()
     _skill_executor.set_build(build)
     _cooldown_remaining = 0.0
     skill_changed.emit(build)
 
 
 func try_cast_skill() -> void:
+    _cast_skill_at(_get_mouse_world_position())
+
+
+func request_cast_at(world_position: Vector3, allow_range_movement: bool = true) -> bool:
+    if current_build == null or current_skill == null:
+        _clear_pending_cast_command()
+        return false
+    var cast_position := _clamp_to_arena(world_position)
+    if allow_range_movement and _is_spell_target_out_of_range(cast_position):
+        _pending_cast_position = cast_position
+        _has_pending_cast_command = true
+        set_move_destination(cast_position, true)
+        _face_toward(cast_position)
+        return false
+    _clear_pending_cast_command()
+    cancel_move_destination()
+    return _cast_skill_at(cast_position)
+
+
+func has_pending_cast_command() -> bool:
+    return _has_pending_cast_command
+
+
+func get_pending_cast_position() -> Vector3:
+    return _pending_cast_position
+
+
+func _cast_skill_at(aim_position: Vector3) -> bool:
     if current_build == null or _cooldown_remaining > 0.0:
-        return
-    var aim_position := _get_mouse_world_position()
+        return false
     _face_toward(aim_position, true)
     if current_skill.channelled:
         var was_channeling := _skill_executor.is_channeling()
@@ -109,17 +141,21 @@ func try_cast_skill() -> void:
                 combat_event.emit("Cast -> %s" % current_skill.display_name, current_skill.color)
             if not current_skill.channel_can_move:
                 _cast_lock_remaining = maxf(_cast_lock_remaining, 0.08)
-        return
+            return true
+        return false
     if _skill_executor.request_manual_cast(aim_position, _facing_direction):
         _cooldown_remaining = current_skill.cooldown
         _cast_lock_remaining = cast_movement_lock
         _animate_cast()
         combat_event.emit("Cast -> %s" % current_skill.display_name, current_skill.color)
+        return true
+    return false
 
 
 func try_dash() -> void:
     if _dash_cooldown_remaining > 0.0:
         return
+    _clear_pending_cast_command()
     _end_channel()
     var input_direction := _get_keyboard_move_direction()
     if input_direction.length_squared() <= 0.0 and _has_move_destination:
@@ -198,7 +234,9 @@ func _end_channel() -> void:
         _cooldown_remaining = current_skill.cooldown
 
 
-func set_move_destination(world_position: Vector3) -> void:
+func set_move_destination(world_position: Vector3, preserve_pending_cast: bool = false) -> void:
+    if not preserve_pending_cast:
+        _clear_pending_cast_command()
     _move_destination = Vector3(
         clampf(world_position.x, -arena_limit, arena_limit),
         global_position.y,
@@ -210,10 +248,57 @@ func set_move_destination(world_position: Vector3) -> void:
         _move_marker.visible = true
 
 
-func cancel_move_destination() -> void:
+func cancel_move_destination(preserve_pending_cast: bool = false) -> void:
+    if not preserve_pending_cast:
+        _clear_pending_cast_command()
     _has_move_destination = false
     if _move_marker != null:
         _move_marker.visible = false
+
+
+func _update_pending_cast_command() -> void:
+    if not _has_pending_cast_command:
+        return
+    if current_build == null or current_skill == null:
+        _clear_pending_cast_command()
+        cancel_move_destination()
+        return
+    if current_skill.channelled and not Input.is_action_pressed("cast_skill"):
+        _clear_pending_cast_command()
+        cancel_move_destination()
+        return
+    if _is_spell_target_out_of_range(_pending_cast_position):
+        if not _has_move_destination:
+            set_move_destination(_pending_cast_position, true)
+        _face_toward(_pending_cast_position)
+        return
+    if _cooldown_remaining > 0.0:
+        return
+    var cast_position := _pending_cast_position
+    _clear_pending_cast_command()
+    cancel_move_destination()
+    _cast_skill_at(cast_position)
+
+
+func _is_spell_target_out_of_range(world_position: Vector3) -> bool:
+    if current_skill == null or not current_skill.has_tag(&"spell") or current_skill.target_range <= 0.0:
+        return false
+    var offset := world_position - global_position
+    offset.y = 0.0
+    return offset.length() > maxf(current_skill.target_range - CAST_RANGE_MARGIN, 0.1)
+
+
+func _clear_pending_cast_command() -> void:
+    _has_pending_cast_command = false
+    _pending_cast_position = Vector3.ZERO
+
+
+func _clamp_to_arena(world_position: Vector3) -> Vector3:
+    return Vector3(
+        clampf(world_position.x, -arena_limit, arena_limit),
+        global_position.y,
+        clampf(world_position.z, -arena_limit, arena_limit)
+    )
 
 
 func has_move_destination() -> bool:
@@ -338,14 +423,13 @@ func _update_held_arpg_actions() -> void:
         return
     var force_attack := Input.is_action_pressed("force_attack")
     if cast_held or (force_attack and move_held):
-        _begin_attack_command()
+        _begin_attack_command(not force_attack)
     elif move_held:
         set_move_destination(_get_mouse_world_position())
 
 
-func _begin_attack_command() -> void:
-    cancel_move_destination()
-    try_cast_skill()
+func _begin_attack_command(allow_range_movement: bool) -> void:
+    request_cast_at(_get_mouse_world_position(), allow_range_movement)
 
 
 func _is_pointer_over_ui() -> bool:

@@ -15,7 +15,6 @@ const KENNEY_STAR := preload("res://assets/vfx/cc0/kenney_particle_pack/star_06.
 const FIREBALL_FOLDER := "res://assets/vfx/cc0/cethiel_fireball"
 const ICE_NOVA_FOLDER := "res://assets/vfx/cc0/grahhhhh_blue_ring"
 const BLADE_WAVE_FOLDER := "res://assets/vfx/cc0/cethiel_blade_wave"
-const HEAVY_SLASH_FOLDER := "res://assets/vfx/cc0/cethiel_heavy_slash"
 const LIGHTNING_ATLAS_PATH := "res://assets/vfx/cc0/13rice_radial_lightning/radial_lightning_atlas.png"
 
 static var _frame_cache: Dictionary = {}
@@ -53,10 +52,17 @@ static func get_cast_frames(active_skill_id: StringName) -> SpriteFrames:
             frames = _build_atlas_sequence(LIGHTNING_ATLAS_PATH, 4, 2, 8, 24.0, false)
         &"shockwave":
             frames = _build_sequence(BLADE_WAVE_FOLDER, 6, 28.0, false)
-        &"slash":
-            frames = _build_sequence(HEAVY_SLASH_FOLDER, 6, 25.0, false)
         _:
             return null
+    _frame_cache[cache_key] = frames
+    return frames
+
+
+static func get_meteor_frames() -> SpriteFrames:
+    var cache_key := &"meteor:cethiel_fireball"
+    if _frame_cache.has(cache_key):
+        return _frame_cache[cache_key] as SpriteFrames
+    var frames := _build_sequence(FIREBALL_FOLDER, 28, 36.0, true)
     _frame_cache[cache_key] = frames
     return frames
 

@@ -84,6 +84,8 @@ func begin_channel(aim_position: Vector3, facing_direction: Vector3) -> bool:
     _channel_tick_remaining = 0.0
     _channel_trigger_remaining = 0.0
     update_channel_target(aim_position, facing_direction)
+    if _runtime != null:
+        _runtime.begin_channel(build.get_root_core(), source_player)
     return true
 
 

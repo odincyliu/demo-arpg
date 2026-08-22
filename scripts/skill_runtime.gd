@@ -19,6 +19,7 @@ var _active_minions: Array[SkillMinion] = []
 var _minion_pool: Array[SkillMinion] = []
 var _cast_visual_sequence: int = 0
 var _hit_visual_sequence: int = 0
+var _channel_sustain_vfx: Node3D
 
 
 func _ready() -> void:
@@ -39,8 +40,11 @@ func _physics_process(delta: float) -> void:
 
 func set_build_revision(revision: int) -> void:
     _build_revision = revision
+    for action: Dictionary in _scheduled_actions:
+        _free_scheduled_vfx(action)
     _scheduled_actions.clear()
     _held_groups.clear()
+    _free_channel_sustain_vfx()
     for effect: Dictionary in _persistent_effects:
         _free_persistent_vfx(effect)
     _persistent_effects.clear()
@@ -81,7 +85,14 @@ func get_scheduled_action_count() -> int:
     return _scheduled_actions.size()
 
 
+func begin_channel(definition: SkillDefinition, source: Node3D) -> void:
+    _free_channel_sustain_vfx()
+    if definition != null and is_instance_valid(source):
+        _channel_sustain_vfx = COMBAT_VFX.spawn_channel_sustain(source, definition)
+
+
 func end_channel(definition: SkillDefinition, origin: Vector3, target_position: Vector3) -> void:
+    _free_channel_sustain_vfx()
     COMBAT_VFX.spawn_channel_end(get_tree().current_scene, definition, origin, target_position)
 
 
@@ -95,7 +106,7 @@ func cast_skill(
     if definition == null or int(context.get("build_revision", -1)) != _build_revision:
         return
     _cast_visual_sequence += 1
-    if _should_spawn_combat_visual(false):
+    if _should_spawn_combat_visual(false) and not is_instance_valid(_channel_sustain_vfx):
         COMBAT_VFX.spawn_cast_layers(get_tree().current_scene, definition, origin, facing_direction)
     _execute_cast_wave(definition, origin, facing_direction, source, context)
     for repeat_index: int in range(1, definition.repeat_count):
@@ -143,14 +154,23 @@ func _execute_core(
         &"chain":
             _cast_chain(definition, origin, direction, source, context)
         &"meteor":
+            var impact_position := context.get("aim_position", origin) as Vector3
+            var fall_duration := maxf(definition.repeat_interval, 0.1)
+            var descent_vfx := COMBAT_VFX.spawn_meteor_descent(
+                get_tree().current_scene,
+                impact_position,
+                fall_duration,
+                definition.area_radius
+            )
             _scheduled_actions.append({
                 "kind": &"meteor",
-                "remaining": maxf(definition.repeat_interval, 0.1),
+                "remaining": fall_duration,
                 "definition": definition,
-                "origin": context.get("aim_position", origin),
+                "origin": impact_position,
                 "direction": direction,
                 "source": source,
                 "context": context.duplicate(true),
+                "vfx": descent_vfx,
             })
         &"persistent":
             _add_persistent(definition, context.get("aim_position", origin), source, context, 1.0)
@@ -326,7 +346,18 @@ func _cast_chain(
     var target := _get_tracking_target(definition, origin, context.get("aim_position", origin + direction * 8.0))
     if target == null:
         return
-    _deal_hit(definition, target, source, context, direction)
+    var first_direction := target.global_position - origin
+    first_direction.y = 0.0
+    if first_direction.length_squared() <= 0.01:
+        first_direction = direction
+    COMBAT_VFX.spawn_chain_lightning(
+        get_tree().current_scene,
+        origin,
+        target.global_position + Vector3.UP,
+        definition.color,
+        absi(hash([int(context.get("cast_id", 0)), 0]))
+    )
+    _deal_hit(definition, target, source, context, first_direction.normalized())
     _chain_from(definition, target, source, context, {target.get_instance_id(): true})
 
 
@@ -517,7 +548,25 @@ func _process_scheduled(delta: float) -> void:
         if StringName(action["kind"]) == &"cast":
             _execute_cast_wave(definition, action["origin"], action["direction"], action["source"], context)
         else:
+            _free_scheduled_vfx(action)
+            COMBAT_VFX.spawn_meteor_impact(
+                get_tree().current_scene,
+                action["origin"],
+                definition.area_radius
+            )
             _cast_direct_damage(definition, action["origin"], action["direction"], action["source"], context)
+
+
+func _free_scheduled_vfx(action: Dictionary) -> void:
+    var vfx := action.get("vfx") as Node3D
+    if is_instance_valid(vfx):
+        vfx.queue_free()
+
+
+func _free_channel_sustain_vfx() -> void:
+    if is_instance_valid(_channel_sustain_vfx):
+        _channel_sustain_vfx.queue_free()
+    _channel_sustain_vfx = null
 
 
 func _deal_hit(
@@ -617,7 +666,13 @@ func _chain_from(
         if next_target == null:
             break
         excluded_ids[next_target.get_instance_id()] = true
-        COMBAT_VFX.spawn_chain_lightning(get_tree().current_scene, current.global_position + Vector3.UP, next_target.global_position + Vector3.UP, definition.color)
+        COMBAT_VFX.spawn_chain_lightning(
+            get_tree().current_scene,
+            current.global_position + Vector3.UP,
+            next_target.global_position + Vector3.UP,
+            definition.color,
+            absi(hash([int(context.get("cast_id", 0)), jump_index + 1]))
+        )
         var direction := next_target.global_position - current.global_position
         direction.y = 0.0
         _deal_hit(definition, next_target, source, context, direction.normalized(), pow(multiplier, jump_index + 1))

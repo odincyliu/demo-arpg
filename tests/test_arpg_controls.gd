@@ -24,6 +24,7 @@ func _run_test() -> void:
     _verify_input_map(failures)
     await _verify_destination_movement(player, failures)
     await _verify_keyboard_override(player, failures)
+    await _verify_spell_range_cast_command(player, failures)
     await _verify_hold_to_attack(player, failures)
     await _verify_channel_lifecycle(player, failures)
     await _verify_dash(player, failures)
@@ -107,6 +108,45 @@ func _verify_keyboard_override(
         failures.append("WASD did not immediately override click movement")
 
 
+func _verify_spell_range_cast_command(
+        player: PlayerController,
+        failures: PackedStringArray
+) -> void:
+    var result := TEST_UTILS.compile([&"core_frost_lance"])
+    if not result.valid:
+        failures.append("Spell range build failed: %s" % " / ".join(result.errors))
+        return
+    result.build.get_root_core().target_range = 3.0
+    result.build.get_root_core().cooldown = 0.08
+    player.set_skill_build(result.build)
+    player.global_position = Vector3(-8.0, 0.0, 8.0)
+    player.velocity = Vector3.ZERO
+    var target_position := Vector3(-8.0, 0.0, 0.0)
+    var cast_counter := {"count": 0}
+    player.combat_event.connect(func(message: String, _color: Color) -> void:
+        if message.contains("Cast -> Frost Lance"):
+            cast_counter["count"] = int(cast_counter["count"]) + 1
+    )
+    if player.request_cast_at(target_position):
+        failures.append("Out-of-range spell cast immediately instead of moving")
+    if not player.has_pending_cast_command() or not player.has_move_destination():
+        failures.append("Out-of-range spell did not create a pending cast movement command")
+    for _frame: int in 100:
+        await physics_frame
+        if int(cast_counter["count"]) > 0:
+            break
+    var flat_distance := Vector2(
+        player.global_position.x - target_position.x,
+        player.global_position.z - target_position.z
+    ).length()
+    if int(cast_counter["count"]) != 1:
+        failures.append("Pending spell did not cast exactly once after entering range")
+    if flat_distance > result.build.get_root_core().target_range + 0.05:
+        failures.append("Pending spell cast before the player entered target range")
+    if player.has_pending_cast_command() or player.has_move_destination():
+        failures.append("Pending spell command was not cleared after casting")
+
+
 func _verify_hold_to_attack(
         player: PlayerController,
         failures: PackedStringArray
@@ -116,6 +156,7 @@ func _verify_hold_to_attack(
         failures.append("ARPG attack build failed: %s" % " / ".join(result.errors))
         return
     result.build.get_root_core().cooldown = 0.08
+    result.build.get_root_core().target_range = 20.0
     player.set_skill_build(result.build)
     player.global_position = Vector3(-8.0, 0.0, 8.0)
     player.velocity = Vector3.ZERO

@@ -5,7 +5,7 @@
 ## 操作
 
 - `WASD`／方向鍵或滑鼠左鍵：移動
-- 滑鼠右鍵：施放；Channel Core 需持續按住
+- 滑鼠右鍵：施放；點在術法射程外時會先自動移動，進入射程後才施放；Channel Core 需持續按住
 - `Shift + 左鍵`：原地連續施放
 - `Space`：Dash，並中止 Channel
 - `Q`：模擬玩家受傷，用於 On Damage Taken
@@ -55,13 +55,14 @@ Catalog 共 49 個 Component。Shockwave 的 Core ID 為 `core_shockwave`；Shoc
 | Returning Blade | Arrow Shot + Giant + Return |
 | Blood Burst | Slash／Ground Burst + Bleed |
 
-保留項目的玩法邊界亦已加強：Shockwave 是寬型 `wave`，沿路每個目標只命中一次且不在首個命中消失；Pierce 僅適用一般 projectile。Flame Orb 具有資料驅動的 `impact_radius`，碰撞或期限結束時爆裂，直接命中目標不會再次承受 splash。
+保留項目的玩法邊界亦已加強：Shockwave 是寬型 `wave`，沿路每個目標只命中一次且不在首個命中消失；Pierce 僅適用一般 projectile。Flame Orb 具有資料驅動的 `impact_radius`，碰撞或期限結束時爆裂，直接命中目標不會再次承受 splash。所有術法 Core 都有 Catalog 集中管理的 `target_range`；Chain Lightning 的第一段由施法者連到首個目標，再沿用通用 Chain 機制向後跳躍；手動施放 Frost Nova 固定以玩家為中心擴散。
 
 ## 黑影 VFX 規範
 
 - `ShadowVfxStyle` 集中管理近黑本體、炭灰煙影、中灰殘像、灰白輪廓與短暫銀白閃光；所有色票保持 R＝G＝B。
 - Mesh Shader 提供邊緣晃動、透明消散與 Fresnel 灰邊；Sprite Shader 依原圖亮度映射黑影、灰邊及噪聲晃動。兩者均不取樣螢幕或深度紋理，可供 GL Compatibility／Web 使用。
 - 黑色本體不發光；只有中性輪廓與瞬間閃光使用 emission。Fire／Cold／Lightning 等名稱只保留機制意義，不再決定視覺色相。
+- Slash 的基礎視覺是明確的水平橫斬：武器劃過後會在原刀路留下單一漆黑掃弧，陰影煙霧只從弧線後緣散開，不會沿攻擊方向飛行；每次施放會受控地改變掃出順序、弧寬、厚度、彎曲與煙霧分布，輪廓參考專案內 Kenney CC0 劍氣的尖端收束與柔邊，不使用亮前緣、放射線、地裂、火花或第二道斬痕。
 - 14 個 Core 均有 Cast 與命中／結束識別；Projectile、Wave、Channel、Persistent、Remnant 與 Minion 另有飛行或持續生命週期效果。
 - 現有 CC0 圖檔不離線改色，僅在 Runtime 經 Shader 重映；通用 Trigger、Effect 與 fallback 也使用相同灰階語意。
 
@@ -77,7 +78,8 @@ Cast → Pattern → Shape → Spawn/Hold → Trajectory → Collision
 - `CombatEvent` 傳遞 cast ID、build revision、generation、Core Slot、位置、目標、方向與已執行 operation。
 - Generation 1 可以造成傷害與狀態，但不再觸發下一代 Core。
 - Hold 最多儲存 5 個，1.5 秒自動釋放，並保留排列後重新朝向目前游標。
-- Whirlblade 可移動 Channel；Void Beam 鎖定移動。放開、Dash 或換 Build 後才開始冷卻。
+- Whirlblade 是附著玩家的大型持續旋轉 Channel，期間可像旋風般移動；Void Beam 鎖定移動。放開、Dash 或換 Build 後才開始冷卻。
+- Frost Lance 與 Slash 依實際世界方向投影其模型／劍弧；Meteor 由高空落下黑色本體，抵達目標點後才觸發範圍撞擊。
 - Ignite／Bleed 是來源可追蹤的 DoT；Poison 最多 10 層；Freeze／Stun 使用 100 buildup 與衰減；Electrified 預設 3 秒、增加 20% 承受傷害。
 - Summon 是限時跟隨的遠程單位，會自動鎖定最近敵人。
 - Core、Trigger、元素、狀態、Hold、Remnant、Channel 與 Minion 使用共用黑影 Shader、既有 CC0 與程序化 VFX；沒有專屬編排時採灰階 fallback。

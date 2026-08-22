@@ -35,6 +35,7 @@ func _run_test() -> void:
         messages.append(message)
     )
     await _verify_all_cores(player, dummies, failures)
+    await _verify_core_cast_semantics(player, dummies, failures)
     await _verify_wave_and_splash(player, dummies, failures)
     await _verify_default_hold_freeze(player, dummies, messages, failures)
     await _verify_hold_reaim(player, dummies, failures)
@@ -82,6 +83,59 @@ func _verify_all_cores(
             produced_runtime_result = player.global_position.distance_to(Vector3.ZERO) > 1.0 and target.health < starting_health
         if not produced_runtime_result:
             failures.append("Core %s produced no observable Runtime result" % core_id)
+
+
+func _verify_core_cast_semantics(
+        player: PlayerController,
+        dummies: Array[Node],
+        failures: PackedStringArray
+) -> void:
+    TEST_UTILS.place_player(player)
+    var target := TEST_UTILS.isolate_target(dummies, Vector3(0.0, 0.0, -2.5))
+    var nova := TEST_UTILS.compile([&"core_frost_nova"])
+    player.set_skill_build(nova.build)
+    var starting_health := target.health
+    player.get_skill_executor().request_manual_cast(Vector3(0.0, 0.0, -10.0), Vector3.FORWARD)
+    player.get_skill_executor().process_queued_events()
+    if target.health >= starting_health:
+        failures.append("Manual Frost Nova did not expand from the player")
+
+    TEST_UTILS.place_player(player)
+    target = TEST_UTILS.isolate_target(dummies, Vector3(0.0, 0.0, -3.0))
+    var chain := TEST_UTILS.compile([&"core_chain_lightning"])
+    player.set_skill_build(chain.build)
+    player.get_skill_executor().request_manual_cast(target.global_position, Vector3.FORWARD)
+    player.get_skill_executor().process_queued_events()
+    var found_initial_segment := false
+    var expected_origin := player.global_position + Vector3.UP * 1.05
+    var expected_target := target.global_position + Vector3.UP
+    for candidate: Node in get_nodes_in_group("vfx_chain_lightning"):
+        if not candidate.has_meta("from_position"):
+            continue
+        var from_position := candidate.get_meta("from_position") as Vector3
+        var to_position := candidate.get_meta("to_position") as Vector3
+        if from_position.distance_to(expected_origin) < 0.15 and to_position.distance_to(expected_target) < 0.15:
+            found_initial_segment = true
+            break
+    if not found_initial_segment:
+        failures.append("Chain Lightning omitted the caster-to-first-target segment")
+
+    TEST_UTILS.place_player(player)
+    var meteor := TEST_UTILS.compile([&"core_meteor"])
+    player.set_skill_build(meteor.build)
+    player.get_skill_executor().request_manual_cast(Vector3(0.0, 0.0, -4.0), Vector3.FORWARD)
+    player.get_skill_executor().process_queued_events()
+    var found_descent := false
+    for candidate: Node in get_nodes_in_group("vfx_meteor_descent"):
+        if not candidate.has_meta("start_position"):
+            continue
+        var start_position := candidate.get_meta("start_position") as Vector3
+        var end_position := candidate.get_meta("end_position") as Vector3
+        if start_position.y - end_position.y >= 8.0:
+            found_descent = true
+            break
+    if not found_descent:
+        failures.append("Meteor created no visible sky-to-ground descent")
 
 
 func _verify_wave_and_splash(
@@ -264,6 +318,30 @@ func _verify_channel_trigger(
     var whirl := TEST_UTILS.compile([&"core_whirlblade"])
     if not whirl.build.get_root_core().channel_can_move:
         failures.append("Whirlblade must remain mobile while channelled")
+    player.set_skill_build(whirl.build)
+    Input.action_press("cast_skill")
+    executor.begin_channel(target.global_position, Vector3(0.0, 0.0, -1.0))
+    await physics_frame
+    var sustain: Node3D
+    for candidate: Node in get_nodes_in_group("vfx_channel_sustain"):
+        if candidate is Node3D and candidate.get_parent() == player:
+            sustain = candidate as Node3D
+            break
+    if sustain == null or not bool(sustain.get_meta("follows_source", false)):
+        failures.append("Whirlblade created no persistent player-centred windmill VFX")
+    else:
+        var offset := sustain.global_position - player.global_position
+        player.global_position += Vector3.RIGHT * 1.5
+        await physics_frame
+        if sustain.global_position.distance_to(player.global_position + offset) > 0.05:
+            failures.append("Whirlblade windmill did not follow player movement")
+    executor.stop_channel()
+    Input.action_release("cast_skill")
+    await process_frame
+    for candidate: Node in get_nodes_in_group("vfx_channel_sustain"):
+        if is_instance_valid(candidate) and candidate.get_parent() == player:
+            failures.append("Whirlblade sustain VFX remained after channel end")
+            break
 
 
 func _verify_remnant_and_trajectories(

@@ -61,9 +61,27 @@ func _run_test() -> void:
     await physics_frame
     if executor.get_scheduled_action_count() <= 0:
         failures.append("Repeat/Meteor setup created no scheduled action")
+    if get_nodes_in_group("vfx_meteor_descent").is_empty():
+        failures.append("Meteor setup created no descent VFX")
     player.set_skill_build(safe_build)
+    await process_frame
     if executor.get_scheduled_action_count() != 0:
         failures.append("Build revision did not clear scheduled actions")
+    if not get_nodes_in_group("vfx_meteor_descent").is_empty():
+        failures.append("Build revision did not clear Meteor descent VFX")
+
+    var whirl_build := TEST_UTILS.compile([&"core_whirlblade"]).build
+    player.set_skill_build(whirl_build)
+    Input.action_press("cast_skill")
+    executor.begin_channel(target.global_position, Vector3(0.0, 0.0, -1.0))
+    await physics_frame
+    if get_nodes_in_group("vfx_channel_sustain").is_empty():
+        failures.append("Whirlblade setup created no sustain VFX")
+    player.set_skill_build(safe_build)
+    Input.action_release("cast_skill")
+    await process_frame
+    if not get_nodes_in_group("vfx_channel_sustain").is_empty():
+        failures.append("Build revision did not clear Whirlblade sustain VFX")
 
     for _frame: int in 240:
         await physics_frame
@@ -76,7 +94,7 @@ func _run_test() -> void:
     await process_frame
     await process_frame
     if failures.is_empty():
-        print("PASS: revision cleanup reclaimed Hold, Remnant, projectile, minion, scheduled, and VFX instances")
+        print("PASS: revision cleanup reclaimed Hold, Remnant, projectile, minion, scheduled, channel, and VFX instances")
         quit(0)
         return
     for failure: String in failures:

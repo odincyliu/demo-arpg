@@ -159,6 +159,7 @@ func _physics_process(delta: float) -> void:
                 ).normalized()
     if definition.rotation_speed != 0.0:
         direction = direction.rotated(Vector3.UP, definition.rotation_speed * delta).normalized()
+    _update_core_mesh_rotation()
     _update_skill_sprite_rotation()
     var previous_position := global_position
     global_position += direction * _current_speed * delta
@@ -285,7 +286,6 @@ func _configure_core_mesh() -> void:
             var lance := PrismMesh.new()
             lance.size = Vector3(0.24, 0.24, 1.75)
             _mesh_instance.mesh = lance
-            _mesh_instance.rotation.x = PI * 0.5
         &"shockwave":
             var wave := BoxMesh.new()
             wave.size = Vector3(1.45 * definition.width_multiplier, 0.62, 0.22)
@@ -295,7 +295,13 @@ func _configure_core_mesh() -> void:
             orb.radius = 0.28
             orb.height = 0.56
             _mesh_instance.mesh = orb
-    _mesh_instance.rotation.y = atan2(direction.x, direction.z)
+    _update_core_mesh_rotation()
+
+
+func _update_core_mesh_rotation() -> void:
+    if _mesh_instance == null:
+        return
+    _mesh_instance.rotation = Vector3(0.0, atan2(direction.x, direction.z), 0.0)
 
 
 func _configure_skill_sprite() -> void:
@@ -364,7 +370,10 @@ func _update_skill_sprite_rotation() -> void:
         return
     var camera := get_viewport().get_camera_3d()
     if camera != null:
-        var camera_direction := camera.global_transform.basis.inverse() * direction
-        _skill_sprite.rotation.z = atan2(-camera_direction.y, camera_direction.x)
-        return
+        var screen_origin := camera.unproject_position(global_position)
+        var screen_target := camera.unproject_position(global_position + direction)
+        var screen_direction := screen_target - screen_origin
+        if screen_direction.length_squared() > 0.001:
+            _skill_sprite.rotation.z = atan2(screen_direction.y, screen_direction.x)
+            return
     _skill_sprite.rotation.z = atan2(-direction.z, direction.x)
